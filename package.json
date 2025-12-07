@@ -1,0 +1,28 @@
+{
+  "name": "e-commerce-web-programming",
+  "version": "1.0.0",
+  "description": "Our E-Commerce site for Web-Programming course in Iliauni, for Interim Presentation and Final Project.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NixusL/E-Commerce-Web-Programming.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NixusL/E-Commerce-Web-Programming/issues"
+  },
+  "homepage": "https://github.com/NixusL/E-Commerce-Web-Programming#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
