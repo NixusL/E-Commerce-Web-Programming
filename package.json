@@ -19,9 +19,11 @@
   },
   "homepage": "https://github.com/NixusL/E-Commerce-Web-Programming#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.19.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.1"
   },
   "devDependencies": {
