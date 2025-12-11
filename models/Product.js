@@ -6,21 +6,29 @@ const productSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     price: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
     category: {
       type: String,
-      default: 'Uncategorized'
+      default: 'Uncategorized',
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    emoji: {
+      type: String,
+      default: '🛒',
     },
     inStock: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
   { timestamps: true }
 );
