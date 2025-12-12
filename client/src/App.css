@@ -181,6 +181,26 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.product-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.product-meta-strong {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.product-email {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.product-email:hover {
+  text-decoration: underline;
+}
+
 /* Buttons */
 .btn-secondary {
   align-self: flex-start;
@@ -388,13 +408,217 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 999px;
-  background: #38bdf8;
-  color: #0b1120;
-  font-size: 0.8rem;
-  font-weight: 700;
   margin-left: 6px;
+  
+  border-radius: 999px;
+  background: #38bdf8;   /* ✅ always visible */
+  color: #0b1120;
+
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.plus-badge {
+  position: relative;            /* required for absolute child */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+
+  margin-left: 6px;
+  border-radius: 999px;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.plus-icon-wrap {
+  position: absolute;            /* true center */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plus-icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Product owner highlight */
+.product-card--mine {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+}
+
+/* Pencil icon button with larger, centered, rotated pencil */
+.icon-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+
+  border: 1px solid #374151;
+  background: rgba(2, 6, 23, 0.95);
+  color: #38bdf8;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  
+  transition: border-color 0.2s ease;
+}
+
+.icon-btn:hover {
+  border-color: #38bdf8;
+}
+
+/* Form card look (shared by add/edit) */
+.form-card {
+  max-width: 520px;
+  margin: 0 auto;
+  border: 1px solid #1f2937;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: #020617;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.form-title {
+  font-size: 1.6rem;
+  margin: 0 0 0.25rem;
+}
+
+.form-subtitle {
+  color: #9ca3af;
+  margin: 0 0 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-danger-outline {
+  border: 1px solid #ef4444;
+  background: transparent;
+  color: #fecaca;
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+  filter: brightness(1.05);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.form-actions .auth-primary-button,
+.form-actions .btn-secondary,
+.form-actions .btn-danger-outline {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.edit-icon {
+  width: 18px;
+  height: 18px;
+
+  display: block;                 /* important */
+  transform-origin: 50% 50%;      /* center of svg */
+  transform: rotate(135deg);
+}
+
+.icon-btn svg {
+  display: block;
+  transform-box: fill-box;        /* helps some browsers */
+  transform-origin: center;
+}
+
+.icon-btn .edit-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(225deg);
+}
+
+.nav-links a.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0px;
+}
+
+.nav-links a.nav-link:hover .plus-badge {
+  background: rgba(56, 189, 248, 0.12); /* subtle glow */
+}
+
+.nav-links a.nav-link:hover .badge {
+  filter: brightness(1.1);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+/* ✅ Make action-bar buttons uniform (overrides auth-page button styles) */
+.form-actions .auth-primary-button {
+  width: auto !important;     /* stop full-width from auth pages */
+  margin-top: 0 !important;   /* remove auth form spacing */
+  height: 44px !important;
+  padding: 0 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.form-actions .btn-secondary,
+.form-actions .btn-danger-outline {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;     /* real centering */
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+
+.form-actions button {
+  border-radius: 999px;
 }

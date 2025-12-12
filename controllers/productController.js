@@ -4,7 +4,9 @@ const Product = require('../models/Product');
 // GET /api/products
 async function getAllProducts(req, res) {
   try {
-    const products = await Product.find(); // fetch all products from MongoDB
+    const products = await Product.find()
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -16,7 +18,7 @@ async function getAllProducts(req, res) {
 async function getProductById(req, res) {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id); // find product by MongoDB _id
+    const product = await Product.findById(id).populate("createdBy", "name email");
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -30,25 +32,26 @@ async function getProductById(req, res) {
 }
 
 // POST /api/products
+// customer/admin can create products (sell)
 async function createProduct(req, res) {
   try {
     const { name, price, category, inStock, description, emoji } = req.body;
 
-    // basic validation
     if (!name || price == null) {
       return res.status(400).json({ message: 'Name and price are required' });
     }
 
     const product = new Product({
       name,
-      price,
-      category: category || "Uncategorized",
-      description: description || "",
-      emoji: emoji || "🛒",
+      price: Number(price),
+      category: category || 'Uncategorized',
+      description: description || '',
+      emoji: emoji || '🛒',
       inStock: inStock ?? true,
+      createdBy: req.user?._id, // set ownership
     });
 
-    const savedProduct = await product.save(); // save to MongoDB
+    const savedProduct = await product.save();
     res.status(201).json(savedProduct);
   } catch (error) {
     console.error('Error creating product:', error);
@@ -57,23 +60,30 @@ async function createProduct(req, res) {
 }
 
 // PUT /api/products/:id
+// admin can update any; customer can update only their own
 async function updateProduct(req, res) {
   try {
     const { id } = req.params;
 
-    // new: true → return updated document
-    // runValidators: true → validate fields before update
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    if (!updatedProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+    const isAdmin = req.user?.role === "admin";
+    const isOwner =
+      product.createdBy && req.user?._id && product.createdBy.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ message: "Not allowed to edit this product" });
     }
 
-    res.json(updatedProduct);
+    // Only allow fields you want editable
+    const allowedFields = ["name", "price", "category", "description", "emoji", "inStock"];
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) product[key] = req.body[key];
+    }
+
+    const updated = await product.save();
+    res.json(updated);
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(400).json({ message: 'Invalid product ID or invalid data' });
@@ -81,17 +91,24 @@ async function updateProduct(req, res) {
 }
 
 // DELETE /api/products/:id
+// admin can delete any; customer can delete only their own
 async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
 
-    const deletedProduct = await Product.findByIdAndDelete(id);
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    if (!deletedProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+    const isAdmin = req.user?.role === "admin";
+    const isOwner =
+      product.createdBy && req.user?._id && product.createdBy.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ message: "Not allowed to delete this product" });
     }
 
-    res.status(204).send(); // success, no content
+    await Product.findByIdAndDelete(id);
+    res.status(204).send();
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(400).json({ message: 'Invalid product ID' });
