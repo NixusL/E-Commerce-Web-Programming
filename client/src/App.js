@@ -165,12 +165,33 @@ function ProductsPage({ onBuyNow, user }) {
                   )}
                 </p>
 
-                <button
-                  className="btn-secondary"
-                  onClick={() => onBuyNow(product._id)}
-                >
-                  Buy Now
-                </button>
+                {/* Stock pill */}
+                <p className={"stock-pill " + (product.inStock ? "stock-pill--in" : "stock-pill--out")}>
+                  {product.inStock ? "✅ In stock" : "⛔ Out of stock"}
+                </p>
+
+                <div className={"product-actions" + (!product.inStock ? " product-actions--row" : "")}>
+                  <button
+                    className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
+                    disabled={!product.inStock}
+                    onClick={() => onBuyNow(product._id)}
+                    title={!product.inStock ? "Out of stock" : "Buy now"}
+                  >
+                    Buy Now
+                  </button>
+
+                  {!product.inStock && (
+                    <button
+                      className="btn-notify"
+                      type="button"
+                      onClick={() => {
+                        alert("🔔 Demo: we would notify you when it’s back in stock.");
+                      }}
+                    >
+                      Notify me
+                    </button>
+                  )}
+                </div>
               </article>
             );
           })}
@@ -235,8 +256,8 @@ export default function App() {
     loadOrdersCount();
   }, [user]);
 
-  function showToast(message) {
-    setToast(message);
+  function showToast(message, type = "success") {
+    setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }
 
@@ -288,7 +309,11 @@ export default function App() {
 
   return (
     <div className="app">
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className={"toast" + (toast.type === "error" ? " toast--error" : "")}>
+          {toast.message}
+        </div>
+      )}
 
       <header className="navbar">
         <NavLink to="/" className="logo">
