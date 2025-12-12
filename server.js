@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');                 // <-- NEW: for working with file paths
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require("./routes/authRoutes");
@@ -12,15 +13,28 @@ connectDB();             // Connect to MongoDB
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Simple test route
+// Serve static files from /public (CSS, images, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// -------- HTML PAGES --------
+
+// Home page -> public/index.html
 app.get('/', (req, res) => {
-  res.send('E-Commerce API is running with MongoDB');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Product routes
+// Products page -> public/products.html
+app.get('/products', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'products.html'));
+});
+
+// -------- API ROUTES --------
+
+// Product routes (backend API)
 app.use('/api/products', productRoutes);
 
 // Auth routes
