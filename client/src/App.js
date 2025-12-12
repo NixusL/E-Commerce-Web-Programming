@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import LoginPage from "./LoginPage";
+import RegisterPage from "./RegisterPage";
 
 const CATEGORIES = ["All", "Electronics", "Accessories", "Computers", "Audio"];
 
@@ -41,10 +43,38 @@ function App() {
 
   return (
     <div className="app">
+      {/* Top navigation bar */}
       <header className="navbar">
-        <div className="logo">MyShop</div>
-        <nav>
-          <span className="nav-link active">Products</span>
+        <NavLink to="/" className="logo">
+          MyShop
+        </NavLink>
+
+        <nav className="nav-links">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              "nav-link" + (isActive ? " active" : "")
+            }
+          >
+            Products
+          </NavLink>
+          <NavLink
+            to="/login"
+            className={({ isActive }) =>
+              "nav-link" + (isActive ? " active" : "")
+            }
+          >
+            Login
+          </NavLink>
+          <NavLink
+            to="/register"
+            className={({ isActive }) =>
+              "nav-link nav-link-primary" + (isActive ? " active" : "")
+            }
+          >
+            Sign up
+          </NavLink>
         </nav>
       </header>
 
