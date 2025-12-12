@@ -6,8 +6,10 @@ import RegisterPage from "./RegisterPage";
 import MyOrdersPage from "./MyOrdersPage";
 import AddProductPage from "./AddProductPage";
 import EditProductPage from "./EditProductPage";
+import AdminPanelPage from "./AdminPanelPage";
 import { FiPlus } from "react-icons/fi";
 import { FiEdit2 } from "react-icons/fi";
+import { FiShield } from "react-icons/fi";
 
 const API_BASE = "http://localhost:5000";
 const CATEGORIES = ["All", "Electronics", "Accessories", "Computers", "Audio"];
@@ -108,21 +110,36 @@ function ProductsPage({ onBuyNow, user }) {
 
             const isMine = createdById && myId && createdById === myId;
 
-            const canEdit = isAdmin || isMine;
+            const canEdit = isAdmin ? true : isMine;
+
+            // outline logic:
+            // - normal user: own -> green
+            // - admin: own -> dark red
+            // - admin: others -> orange
+            const cardClass =
+              "product-card" +
+              (isAdmin
+                ? isMine
+                  ? " product-card--admin-mine"
+                  : " product-card--admin"
+                : isMine
+                  ? " product-card--mine"
+                  : "");
 
             return (
               <article
                 key={product._id}
-                className={
-                  "product-card" + (isMine ? " product-card--mine" : "")
-                }
+                className={cardClass}
                 style={{ position: "relative" }}
               >
                 {/* Pencil icon top-right (owner/admin only) */}
                 {canEdit && (
                   <button
                     type="button"
-                    className="icon-btn"
+                    className={
+                      "icon-btn" +
+                      (isAdmin ? (isMine ? " icon-btn--admin-mine" : " icon-btn--admin") : "")
+                    }
                     title="Edit product"
                     onClick={() => navigate(`/products/${product._id}/edit`)}
                   >
@@ -321,6 +338,17 @@ export default function App() {
         </NavLink>
 
         <nav className="nav-links">
+          {user?.role === "admin" && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                "nav-link nav-link--admin" + (isActive ? " active" : "")
+              }
+            >
+              Admin Panel
+            </NavLink>
+          )}
+
           <NavLink
             to="/"
             end
@@ -378,8 +406,9 @@ export default function App() {
                 My Orders <span className="badge">{ordersCount}</span>
               </NavLink>
 
-              <span className="nav-link" style={{ color: "#e5e7eb" }}>
-                {roleEmoji} {user.name}
+              <span className="nav-link nav-user">
+                {user?.role === "admin" && <FiShield className="admin-badge-icon" />}
+                <span className="nav-user-name">{user.name}</span>
               </span>
 
               <button type="button" className="nav-link-button" onClick={logout}>
@@ -412,6 +441,7 @@ export default function App() {
             path="/products/:id/edit"
             element={<EditProductPage showToast={showToast} />}
           />
+          <Route path="/admin" element={<AdminPanelPage showToast={showToast} />} />
         </Routes>
       </main>
 
