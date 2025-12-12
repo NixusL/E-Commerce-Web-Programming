@@ -27,6 +27,7 @@ async function buyNow(req, res) {
           name: product.name,
           price: product.price,
           qty: quantity,
+          emoji: product.emoji || "🛒",
         },
       ],
       total,
@@ -103,10 +104,34 @@ async function deleteOrder(req, res) {
   }
 }
 
+// PUT /api/orders/:id/cancel
+// Customer cancels their own order (only if still pending/processing)
+async function cancelMyOrder(req, res) {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findOne({ _id: id, customer: req.user._id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    if (!["pending", "processing"].includes(order.status)) {
+      return res.status(400).json({ message: "Order can’t be cancelled anymore" });
+    }
+
+    order.status = "cancelled";
+    await order.save();
+
+    res.json(order);
+  } catch (err) {
+    console.error("cancelMyOrder error:", err);
+    res.status(400).json({ message: "Invalid order id" });
+  }
+}
+
 module.exports = {
   buyNow,
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
   deleteOrder,
+  cancelMyOrder,
 };

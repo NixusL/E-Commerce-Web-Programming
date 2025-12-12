@@ -32,7 +32,7 @@ async function getProductById(req, res) {
 // POST /api/products
 async function createProduct(req, res) {
   try {
-    const { name, price, category, inStock } = req.body;
+    const { name, price, category, inStock, description, emoji } = req.body;
 
     // basic validation
     if (!name || price == null) {
@@ -42,8 +42,10 @@ async function createProduct(req, res) {
     const product = new Product({
       name,
       price,
-      category: category || 'Uncategorized',
-      inStock: inStock ?? true
+      category: category || "Uncategorized",
+      description: description || "",
+      emoji: emoji || "🛒",
+      inStock: inStock ?? true,
     });
 
     const savedProduct = await product.save(); // save to MongoDB

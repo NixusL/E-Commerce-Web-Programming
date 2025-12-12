@@ -11,13 +11,17 @@ const {
   getAllOrders,
   updateOrderStatus,
   deleteOrder,
+  cancelMyOrder,
 } = require("../controllers/orderController");
 
-// Customer
-router.post("/buy-now", auth, authorize("customer"), buyNow);
-router.get("/my", auth, authorize("customer"), getMyOrders);
+// Customer (and Admin can also buy/view their own orders for simplicity)
+router.post("/buy-now", auth, authorize("customer", "admin"), buyNow);
+router.get("/my", auth, authorize("customer", "admin"), getMyOrders);
 
-// Admin
+// Cancel own order (customer/admin, but must be their own order)
+router.put("/:id/cancel", auth, authorize("customer", "admin"), cancelMyOrder);
+
+// Admin store management
 router.get("/", auth, authorize("admin"), getAllOrders);
 router.put("/:id/status", auth, authorize("admin"), updateOrderStatus);
 router.delete("/:id", auth, authorize("admin"), deleteOrder);
