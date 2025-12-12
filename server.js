@@ -5,6 +5,8 @@ const dotenv = require('dotenv');
 const path = require('path');                 // <-- NEW: for working with file paths
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/productRoutes');
+const authRoutes = require("./routes/authRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 dotenv.config();         // Load .env
 connectDB();             // Connect to MongoDB
@@ -35,7 +37,12 @@ app.get('/products', (req, res) => {
 // Product routes (backend API)
 app.use('/api/products', productRoutes);
 
-// -------- START SERVER --------
+// Auth routes
+app.use("/api/auth", authRoutes);
+
+// Order routes
+app.use("/api/orders", orderRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
