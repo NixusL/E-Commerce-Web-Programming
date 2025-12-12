@@ -1,6 +1,10 @@
 import React, { useState } from "react";
+import { Routes, Route, NavLink } from "react-router-dom";
 import "./App.css";
+import LoginPage from "./LoginPage";
+import RegisterPage from "./RegisterPage";
 
+// Static products just for the frontend demo
 const PRODUCTS = [
   {
     id: 1,
@@ -84,7 +88,6 @@ const PRODUCTS = [
   },
 ];
 
-
 const CATEGORIES = ["All", "Electronics", "Accessories", "Computers", "Audio"];
 
 function App() {
@@ -97,61 +100,112 @@ function App() {
 
   return (
     <div className="app">
+      {/* Top navigation bar */}
       <header className="navbar">
-        <div className="logo">MyShop</div>
-        <nav>
-          <span className="nav-link active">Products</span>
+        <NavLink to="/" className="logo">
+          MyShop
+        </NavLink>
+
+        <nav className="nav-links">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              "nav-link" + (isActive ? " active" : "")
+            }
+          >
+            Products
+          </NavLink>
+          <NavLink
+            to="/login"
+            className={({ isActive }) =>
+              "nav-link" + (isActive ? " active" : "")
+            }
+          >
+            Login
+          </NavLink>
+          <NavLink
+            to="/register"
+            className={({ isActive }) =>
+              "nav-link nav-link-primary" + (isActive ? " active" : "")
+            }
+          >
+            Sign up
+          </NavLink>
         </nav>
       </header>
 
       <main className="main">
-        <section className="hero">
-          <div className="hero-text">
-            <h1>E-Commerce Website</h1>
-            <p>
-              Simple React frontend for our Web Programming assignment.
-              Browse products and filter them by category.
-            </p>
-          </div>
-        </section>
+        <Routes>
+          {/* Products page */}
+          <Route
+            path="/"
+            element={
+              <>
+                <section className="hero">
+                  <div className="hero-text">
+                    <h1>E-Commerce Website</h1>
+                    <p>
+                      Simple React frontend for our Web Programming assignment.
+                      Browse products and filter them by category.
+                    </p>
+                  </div>
+                </section>
 
-        <section className="categories">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              className={
-                "category-button" +
-                (cat === selectedCategory ? " category-button--active" : "")
-              }
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
-        </section>
+                <section className="categories">
+                  {CATEGORIES.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={
+                        "category-button" +
+                        (selectedCategory === category
+                          ? " category-button--active"
+                          : "")
+                      }
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </section>
 
-        <section className="product-grid">
-          {filteredProducts.map((product) => (
-            <article className="product-card" key={product.id}>
-              <div className="product-image placeholder">
-                <span>{product.emoji}</span>
-              </div>
-              <h2 className="product-name">{product.name}</h2>
-              <p className="product-category">{product.category}</p>
-              <p className="product-desc">{product.description}</p>
-              <p className="product-price">${product.price.toFixed(2)}</p>
-              <button className="btn-secondary">Add to Cart</button>
-            </article>
-          ))}
+                <section className="product-grid">
+                  {filteredProducts.length === 0 && (
+                    <div className="no-products">
+                      No products in this category yet.
+                    </div>
+                  )}
 
-          {filteredProducts.length === 0 && (
-            <p className="no-products">No products in this category yet.</p>
-          )}
-        </section>
+                  {filteredProducts.map((product) => (
+                    <article className="product-card" key={product.id}>
+                      <div className="product-image placeholder">
+                        <span>{product.emoji}</span>
+                      </div>
+                      <h2 className="product-name">{product.name}</h2>
+                      <p className="product-category">{product.category}</p>
+                      <p className="product-desc">{product.description}</p>
+                      <p className="product-price">
+                        ${product.price.toFixed(2)}
+                      </p>
+                      <button type="button" className="btn-secondary">
+                        Buy Now!
+                      </button>
+                    </article>
+                  ))}
+                </section>
+              </>
+            }
+          />
+
+          {/* Auth pages */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Routes>
       </main>
 
       <footer className="footer">
-        <p>&copy; 2025 MyShop · React + Express demo</p>
+        © 2025 MyShop · React + Express demo
       </footer>
     </div>
   );
