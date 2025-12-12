@@ -1,5 +1,6 @@
 // controllers/productController.js
 const Product = require('../models/Product');
+const Order = require("../models/Order");
 
 // GET /api/products
 async function getAllProducts(req, res) {
@@ -107,8 +108,22 @@ async function deleteProduct(req, res) {
       return res.status(403).json({ message: "Not allowed to delete this product" });
     }
 
+    // block deletion if there are active orders for this product
+    const hasActiveOrders = await Order.exists({
+      "items.product": id, // assuming orders store items: [{ product, qty, ... }]
+      status: { $in: ["pending", "processing"] },
+    });
+
+    if (hasActiveOrders) {
+      return res.status(409).json({
+        message:
+          "Cannot delete: there are active orders for this product. Mark out of stock instead.",
+      });
+    }
+
     await Product.findByIdAndDelete(id);
     res.status(204).send();
+
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(400).json({ message: 'Invalid product ID' });

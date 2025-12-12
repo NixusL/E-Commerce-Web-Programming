@@ -1,0 +1,1 @@
+export const CATEGORIES = ["Electronics", "Accessories", "Computers", "Audio"];
