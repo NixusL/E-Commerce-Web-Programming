@@ -12,7 +12,6 @@ import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
 
 const API_BASE = "http://localhost:5000";
-const CATEGORIES = ["All", "Electronics", "Accessories", "Computers", "Audio"];
 
 function formatPrice(amount) {
   const n = Number(amount);
@@ -39,6 +38,7 @@ function ProductsPage({ onBuyNow, user }) {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -46,16 +46,23 @@ function ProductsPage({ onBuyNow, user }) {
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${API_BASE}/api/products`);
-        if (!res.ok) throw new Error("Failed to fetch products");
+        // Fetch products
+        const productsRes = await fetch(`${API_BASE}/api/products`);
+        if (!productsRes.ok) throw new Error("Failed to fetch products");
+        const productsData = await productsRes.json();
+        setProducts(productsData);
 
-        const data = await res.json();
-        setProducts(data);
+        // Fetch categories
+        const categoriesRes = await fetch(`${API_BASE}/api/admin/categories`);
+        if (categoriesRes.ok) {
+          const categoriesData = await categoriesRes.json();
+          setCategories(categoriesData);
+        }
       } catch (err) {
         setError(err.message || "Unknown error");
       } finally {
@@ -63,7 +70,7 @@ function ProductsPage({ onBuyNow, user }) {
       }
     }
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   const filteredProducts =
@@ -81,17 +88,27 @@ function ProductsPage({ onBuyNow, user }) {
       </section>
 
       <section className="categories">
-        {CATEGORIES.map((category) => (
+        <button
+          className={
+            selectedCategory === "All"
+              ? "category-button category-button--active"
+              : "category-button"
+          }
+          onClick={() => setSelectedCategory("All")}
+        >
+          All
+        </button>
+        {categories.map((category) => (
           <button
-            key={category}
+            key={category._id}
             className={
-              category === selectedCategory
+              category.name === selectedCategory
                 ? "category-button category-button--active"
                 : "category-button"
             }
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => setSelectedCategory(category.name)}
           >
-            {category}
+            {category.emoji || "📦"} {category.name}
           </button>
         ))}
       </section>

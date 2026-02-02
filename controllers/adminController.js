@@ -2,6 +2,7 @@
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const User = require("../models/User");
+const Category = require("../models/Category");
 const bcrypt = require("bcryptjs");
 
 // GET /api/admin/products
@@ -121,12 +122,12 @@ async function adminCreateAdminUser(req, res) {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: "Email already in use" });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password: hashed,
+      passwordHash,
       role: "admin",
     });
 
@@ -142,6 +143,101 @@ async function adminCreateAdminUser(req, res) {
   }
 }
 
+// GET /api/admin/categories
+async function adminListCategories(req, res) {
+  try {
+    const categories = await Category.find().sort({ createdAt: -1 });
+    res.json(categories);
+  } catch (e) {
+    console.error("adminListCategories error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// POST /api/admin/categories
+// Body: { name, description?, emoji? }
+async function adminCreateCategory(req, res) {
+  try {
+    const { name, description, emoji } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const exists = await Category.findOne({ name: name.toLowerCase() });
+    if (exists) {
+      return res.status(409).json({ message: "Category already exists" });
+    }
+
+    const category = await Category.create({
+      name: name.toLowerCase(),
+      description: description || "",
+      emoji: emoji || "📦",
+    });
+
+    res.status(201).json(category);
+  } catch (e) {
+    console.error("adminCreateCategory error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// PUT /api/admin/categories/:id
+// Body: { name?, description?, emoji? }
+async function adminUpdateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, description, emoji } = req.body;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    if (name && name !== category.name) {
+      const exists = await Category.findOne({ name: name.toLowerCase() });
+      if (exists) {
+        return res.status(409).json({ message: "Category name already exists" });
+      }
+      category.name = name.toLowerCase();
+    }
+
+    if (description !== undefined) category.description = description;
+    if (emoji !== undefined) category.emoji = emoji;
+
+    await category.save();
+    res.json(category);
+  } catch (e) {
+    console.error("adminUpdateCategory error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// DELETE /api/admin/categories/:id
+async function adminDeleteCategory(req, res) {
+  try {
+    const { id } = req.params;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const productsUsing = await Product.countDocuments({ category: category.name });
+    if (productsUsing > 0) {
+      return res.status(409).json({
+        message: `Cannot delete: ${productsUsing} product(s) are using this category`,
+      });
+    }
+
+    await Category.findByIdAndDelete(id);
+    res.status(204).send();
+  } catch (e) {
+    console.error("adminDeleteCategory error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports = {
   adminListProducts,
   adminDeleteProductsMany,
@@ -149,4 +245,8 @@ module.exports = {
   adminUpdateOrderStatus,
   adminDeleteOrder,
   adminCreateAdminUser,
+  adminListCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
 };

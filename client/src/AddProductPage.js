@@ -1,7 +1,6 @@
 // client/src/AddProductPage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CATEGORIES } from "./constants/categories";
 import EmojiSelect from "./components/EmojiSelect";
 
 const API_BASE = "http://localhost:5000";
@@ -17,16 +16,42 @@ export default function AddProductPage({ showToast }) {
     const [form, setForm] = useState({
         name: "",
         price: "",
-        category: "Accessories",
+        category: "",
         description: "",
         emoji: "🛒",
         inStock: true,
     });
 
     const [error, setError] = useState("");
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
 
     const [categoryMode, setCategoryMode] = useState("preset"); // preset | custom
     const [customCategory, setCustomCategory] = useState("");
+
+    useEffect(() => {
+        async function loadCategories() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/categories`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setCategories(data);
+                    if (data.length > 0) {
+                        setField("category", data[0].name);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load categories:", err);
+            } finally {
+                setLoadingCategories(false);
+            }
+        }
+        loadCategories();
+    }, [token]);
 
     if (!token) {
         navigate("/login");
@@ -101,28 +126,34 @@ export default function AddProductPage({ showToast }) {
 
                 <label className="auth-label">
                     Category
-                    <select
-                        className="auth-input"
-                        value={categoryMode === "preset" ? form.category : "__custom__"}
-                        onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === "__custom__") {
-                                setCategoryMode("custom");
-                                setField("category", "");
-                                setCustomCategory("");
-                            } else {
-                                setCategoryMode("preset");
-                                setField("category", v);
-                            }
-                        }}
-                    >
-                        {CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                                {c}
-                            </option>
-                        ))}
-                        <option value="__custom__">Other (type)</option>
-                    </select>
+                    {loadingCategories ? (
+                        <p style={{ color: "#888", margin: "0.5rem 0 0" }}>Loading categories...</p>
+                    ) : categories.length === 0 ? (
+                        <p style={{ color: "#f87171", margin: "0.5rem 0 0" }}>No categories created yet</p>
+                    ) : (
+                        <select
+                            className="auth-input"
+                            value={categoryMode === "preset" ? form.category : "__custom__"}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === "__custom__") {
+                                    setCategoryMode("custom");
+                                    setField("category", "");
+                                    setCustomCategory("");
+                                } else {
+                                    setCategoryMode("preset");
+                                    setField("category", v);
+                                }
+                            }}
+                        >
+                            {categories.map((c) => (
+                                <option key={c._id} value={c.name}>
+                                    {c.emoji || "📦"} {c.name}
+                                </option>
+                            ))}
+                            <option value="__custom__">Other (type)</option>
+                        </select>
+                    )}
                 </label>
 
                 {categoryMode === "custom" && (
