@@ -56,7 +56,7 @@ function LoginPage() {
 
       navigate("/");
     } catch {
-      setError("Network error. Is the backend running on port 5000?");
+      setError("Network error. Is the backend running on port 5001?");
     } finally {
       setLoading(false);
     }

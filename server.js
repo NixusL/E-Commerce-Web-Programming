@@ -5,6 +5,7 @@ const path = require("path");
 const connectDB = require("./config/db");
 
 const productRoutes = require("./routes/productRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const authRoutes = require("./routes/authRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -27,11 +28,12 @@ app.get("/", (req, res) => {
 
 // API routes
 app.use("/api/products", productRoutes);
+app.use("/api/products", reportRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

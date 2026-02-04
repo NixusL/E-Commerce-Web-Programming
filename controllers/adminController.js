@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Report = require('../models/Report');
 const bcrypt = require('bcryptjs');
 
 // GET /api/admin/products
@@ -196,6 +197,43 @@ async function adminDeleteCategory(req, res) {
   }
 }
 
+// GET /api/admin/reports
+async function adminListReports(req, res) {
+  try {
+    const reports = await Report.find()
+      .populate('product', 'name')
+      .populate('reportedBy', 'name email')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// PUT /api/admin/reports/:id/status
+async function adminUpdateReportStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!['pending', 'reviewed', 'dismissed'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    const report = await Report.findByIdAndUpdate(id, { status, reviewedBy: req.user._id }, { new: true })
+      .populate('product', 'name')
+      .populate('reportedBy', 'name email')
+      .populate('reviewedBy', 'name email');
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+    res.json(report);
+  } catch (error) {
+    console.error('Error updating report:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 module.exports = {
   adminListProducts,
   adminDeleteProductsMany,
@@ -206,5 +244,7 @@ module.exports = {
   adminCreateSellerUser,
   adminListCategories,
   adminCreateCategory,
-  adminDeleteCategory
+  adminDeleteCategory,
+  adminListReports,
+  adminUpdateReportStatus
 };

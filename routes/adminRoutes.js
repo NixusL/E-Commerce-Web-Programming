@@ -16,6 +16,8 @@ const {
   adminListCategories,
   adminCreateCategory,
   adminDeleteCategory,
+  adminListReports,
+  adminUpdateReportStatus,
 } = require("../controllers/adminController");
 
 router.use(auth, requireAdmin);
@@ -37,5 +39,9 @@ router.post("/users/seller", adminCreateSellerUser);
 router.get("/categories", adminListCategories);
 router.post("/categories", adminCreateCategory);
 router.delete("/categories/:id", adminDeleteCategory);
+
+// Reports
+router.get("/reports", adminListReports);
+router.put("/reports/:id/status", adminUpdateReportStatus);
 
 module.exports = router;

@@ -8,6 +8,7 @@ import MyOrdersPage from "./MyOrdersPage";
 import AddProductPage from "./AddProductPage";
 import EditProductPage from "./EditProductPage";
 import AdminPanelPage from "./AdminPanelPage";
+import ReportProductPage from "./ReportProductPage";
 import { FiPlus } from "react-icons/fi";
 import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
@@ -220,6 +221,15 @@ function ProductsPage({ onBuyNow, user }) {
                       Notify me
                     </button>
                   )}
+
+                  <button
+                    className="btn-danger-outline"
+                    type="button"
+                    onClick={() => navigate(`/report/${product._id}`)}
+                    title="Report this product"
+                  >
+                    Report
+                  </button>
                 </div>
               </article>
             );
@@ -453,6 +463,10 @@ export default function App() {
           <Route
             path="/products/:id/edit"
             element={<EditProductPage showToast={showToast} />}
+          />
+          <Route
+            path="/report/:id"
+            element={<ReportProductPage showToast={showToast} />}
           />
           <Route path="/admin" element={<AdminPanelPage showToast={showToast} />} />
         </Routes>
