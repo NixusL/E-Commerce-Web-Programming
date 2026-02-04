@@ -118,6 +118,32 @@ async function adminCreateAdminUser(req, res) {
   }
 }
 
+// POST /api/admin/users/seller
+async function adminCreateSellerUser(req, res) {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = new User({
+      name,
+      email,
+      passwordHash,
+      role: 'seller'
+    });
+    const savedUser = await user.save();
+    res.status(201).json({ id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role });
+  } catch (error) {
+    console.error('Error creating seller user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 // GET /api/admin/categories
 async function adminListCategories(req, res) {
   try {
@@ -177,6 +203,7 @@ module.exports = {
   adminUpdateOrderStatus,
   adminDeleteOrder,
   adminCreateAdminUser,
+  adminCreateSellerUser,
   adminListCategories,
   adminCreateCategory,
   adminDeleteCategory

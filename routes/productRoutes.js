@@ -20,8 +20,8 @@ router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
 // create/update/delete require login
-router.post('/', auth, authorize("customer", "admin"), createProduct);
-router.put('/:id', auth, authorize("customer", "admin"), updateProduct);
-router.delete('/:id', auth, authorize("customer", "admin"), deleteProduct);
+router.post('/', auth, authorize("seller", "admin"), createProduct);
+router.put('/:id', auth, authorize("seller", "admin"), updateProduct);
+router.delete('/:id', auth, authorize("seller", "admin"), deleteProduct);
 
 module.exports = router;

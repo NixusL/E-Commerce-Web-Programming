@@ -38,7 +38,7 @@ function formatDate(iso) {
 export default function AdminPanelPage({ showToast }) {
     const token = getToken();
 
-    const [tab, setTab] = useState("products"); // products | orders | users | categories
+    const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -55,6 +55,7 @@ export default function AdminPanelPage({ showToast }) {
     const [orders, setOrders] = useState([]);
     const [qOrders, setQOrders] = useState("");
     const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
+    const [newSeller, setNewSeller] = useState({ name: "", email: "", password: "" });
 
     const [expandedOrders, setExpandedOrders] = useState(() => new Set());
 
@@ -288,6 +289,46 @@ export default function AdminPanelPage({ showToast }) {
         }
     }
 
+    async function createSellerUser(e) {
+        e.preventDefault();
+
+        if (!token) {
+            showToast?.("❌ Not logged in", "error");
+            return;
+        }
+
+        if (!newSeller.name || !newSeller.email || !newSeller.password) {
+            showToast?.("❌ Fill in name, email, and password", "error");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError("");
+
+            const res = await fetch(`${API_BASE}/api/admin/users/seller`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(newSeller),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.message || "Failed to create seller");
+
+            showToast?.("✅ Seller user created!");
+            setNewSeller({ name: "", email: "", password: "" });
+            setTab("products");
+        } catch (e2) {
+            showToast?.(`❌ ${e2.message || "Create failed"}`, "error");
+            setError(e2.message || "Create failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     async function deleteOrder(orderId) {
         const ok = window.confirm("Delete this order?");
         if (!ok) return;
@@ -422,6 +463,13 @@ export default function AdminPanelPage({ showToast }) {
                         type="button"
                     >
                         <FaUserPlus className="tab-icon" /> Create Admin
+                    </button>
+                    <button
+                        className={"admin-tab" + (tab === "sellers" ? " admin-tab--active" : "")}
+                        onClick={() => setTab("sellers")}
+                        type="button"
+                    >
+                        <FaUserPlus className="tab-icon" /> Create Seller
                     </button>
                     <button
                         className={"admin-tab" + (tab === "categories" ? " admin-tab--active" : "")}
@@ -675,6 +723,52 @@ export default function AdminPanelPage({ showToast }) {
 
                         <button className="admin-primary" type="submit" disabled={loading}>
                             Create Admin
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {tab === "sellers" && (
+                <div className="admin-card admin-card--center">
+                    <h2 className="admin-card-title">Create Seller User</h2>
+                    <p className="admin-card-text">
+                        This creates a real <b>seller</b> account via the admin API (no redirect).
+                    </p>
+
+                    <form className="admin-form" onSubmit={createSellerUser}>
+                        <label className="admin-form-label">
+                            Name
+                            <input
+                                className="admin-input"
+                                value={newSeller.name}
+                                onChange={(e) => setNewSeller((p) => ({ ...p, name: e.target.value }))}
+                                placeholder="Seller Name"
+                            />
+                        </label>
+
+                        <label className="admin-form-label">
+                            Email
+                            <input
+                                className="admin-input"
+                                value={newSeller.email}
+                                onChange={(e) => setNewSeller((p) => ({ ...p, email: e.target.value }))}
+                                placeholder="seller@example.com"
+                            />
+                        </label>
+
+                        <label className="admin-form-label">
+                            Password
+                            <input
+                                className="admin-input"
+                                type="password"
+                                value={newSeller.password}
+                                onChange={(e) => setNewSeller((p) => ({ ...p, password: e.target.value }))}
+                                placeholder="Minimum 6 chars"
+                            />
+                        </label>
+
+                        <button className="admin-primary" type="submit" disabled={loading}>
+                            Create Seller
                         </button>
                     </form>
                 </div>

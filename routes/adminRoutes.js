@@ -12,6 +12,7 @@ const {
   adminUpdateOrderStatus,
   adminDeleteOrder,
   adminCreateAdminUser,
+  adminCreateSellerUser,
   adminListCategories,
   adminCreateCategory,
   adminDeleteCategory,
@@ -30,6 +31,7 @@ router.delete("/orders/:id", adminDeleteOrder);
 
 // Users
 router.post("/users/admin", adminCreateAdminUser);
+router.post("/users/seller", adminCreateSellerUser);
 
 // Categories
 router.get("/categories", adminListCategories);

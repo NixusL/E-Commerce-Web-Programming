@@ -392,21 +392,22 @@ export default function App() {
             </>
           ) : (
             <>
-              {/* ✅ List Product link with + badge - simplified structure */}
-              <NavLink
-                to="/products/new"
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active" : "")
-                }
-              >
-                List Product
-                <span className="plus-badge" aria-label="Add">
-                  <span className="plus-icon-wrap">
-                    <FiPlus className="plus-icon" />
+              {/* ✅ List Product link with + badge - only for sellers and admins */}
+              {(user?.role === "seller" || user?.role === "admin") && (
+                <NavLink
+                  to="/products/new"
+                  className={({ isActive }) =>
+                    "nav-link" + (isActive ? " active" : "")
+                  }
+                >
+                  List Product
+                  <span className="plus-badge" aria-label="Add">
+                    <span className="plus-icon-wrap">
+                      <FiPlus className="plus-icon" />
+                    </span>
                   </span>
-                </span>
-
-              </NavLink>
+                </NavLink>
+              )}
 
               <NavLink
                 to="/my-orders"
