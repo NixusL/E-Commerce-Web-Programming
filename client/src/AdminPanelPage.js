@@ -1,5 +1,19 @@
 // client/src/AdminPanelPage.js
 import React, { useEffect, useMemo, useState } from "react";
+import {
+    FaBox,
+    FaShoppingCart,
+    FaUserPlus,
+    FaTags,
+    FaSearch,
+    FaTrash,
+    FaEye,
+    FaTimes,
+    FaPlus,
+    FaCheckCircle,
+    FaExclamationTriangle,
+    FaUsers
+} from "react-icons/fa";
 
 const API_BASE = "http://localhost:5000";
 
@@ -393,28 +407,28 @@ export default function AdminPanelPage({ showToast }) {
                         onClick={() => setTab("products")}
                         type="button"
                     >
-                        Products
+                        <FaBox className="tab-icon" /> Products
                     </button>
                     <button
                         className={"admin-tab" + (tab === "orders" ? " admin-tab--active" : "")}
                         onClick={() => setTab("orders")}
                         type="button"
                     >
-                        Orders
+                        <FaShoppingCart className="tab-icon" /> Orders
                     </button>
                     <button
                         className={"admin-tab" + (tab === "users" ? " admin-tab--active" : "")}
                         onClick={() => setTab("users")}
                         type="button"
                     >
-                        Create Admin
+                        <FaUserPlus className="tab-icon" /> Create Admin
                     </button>
                     <button
                         className={"admin-tab" + (tab === "categories" ? " admin-tab--active" : "")}
                         onClick={() => setTab("categories")}
                         type="button"
                     >
-                        Categories
+                        <FaTags className="tab-icon" /> Categories
                     </button>
                 </div>
             </div>

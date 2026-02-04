@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
+import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
 import RegisterPage from "./RegisterPage";
 import MyOrdersPage from "./MyOrdersPage";
@@ -80,13 +81,6 @@ function ProductsPage({ onBuyNow, user }) {
 
   return (
     <>
-      <section className="hero">
-        <div className="hero-text">
-          <h1>E-Commerce Website</h1>
-          <p>Browse products (React) → API (Express) → DB (MongoDB).</p>
-        </div>
-      </section>
-
       <section className="categories">
         <button
           key="All"
@@ -352,7 +346,7 @@ export default function App() {
 
       <header className="navbar">
         <NavLink to="/" className="logo">
-          MyShop
+          TechStore
         </NavLink>
 
         <nav className="nav-links">
@@ -368,8 +362,7 @@ export default function App() {
           )}
 
           <NavLink
-            to="/"
-            end
+            to="/products"
             className={({ isActive }) =>
               "nav-link" + (isActive ? " active" : "")
             }
@@ -439,8 +432,9 @@ export default function App() {
 
       <main className="main">
         <Routes>
+          <Route path="/" element={<HomePage />} />
           <Route
-            path="/"
+            path="/products"
             element={<ProductsPage onBuyNow={handleBuyNow} user={user} />}
           />
           <Route path="/login" element={<LoginPage />} />
@@ -464,7 +458,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2025 MyShop · React + Express demo</p>
+        <p>© 2025 TechStore · Discover the latest in technology</p>
       </footer>
     </div>
   );
