@@ -24,7 +24,7 @@ function formatDate(iso) {
 export default function AdminPanelPage({ showToast }) {
     const token = getToken();
 
-    const [tab, setTab] = useState("products"); // products | orders | users
+    const [tab, setTab] = useState("products"); // products | orders | users | categories
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -32,6 +32,10 @@ export default function AdminPanelPage({ showToast }) {
     const [products, setProducts] = useState([]);
     const [qProducts, setQProducts] = useState("");
     const [selected, setSelected] = useState(() => new Set());
+
+    // categories
+    const [categories, setCategories] = useState([]);
+    const [newCategory, setNewCategory] = useState("");
 
     // orders
     const [orders, setOrders] = useState([]);
@@ -58,6 +62,7 @@ export default function AdminPanelPage({ showToast }) {
     useEffect(() => {
         if (tab === "products") loadProducts();
         if (tab === "orders") loadOrders();
+        if (tab === "categories") loadCategories();
         // users tab is a simple CTA (redirect)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab]);
@@ -99,6 +104,24 @@ export default function AdminPanelPage({ showToast }) {
         }
     }
 
+    async function loadCategories() {
+        if (!token) return;
+        try {
+            setLoading(true);
+            setError("");
+            const res = await fetch(`${API_BASE}/api/admin/categories`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json().catch(() => []);
+            if (!res.ok) throw new Error(data?.message || "Failed to load categories");
+            setCategories(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setError(e.message || "Network error");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const filteredProducts = useMemo(() => {
         const s = qProducts.trim().toLowerCase();
         if (!s) return products;
@@ -109,7 +132,7 @@ export default function AdminPanelPage({ showToast }) {
                     : "";
             return (
                 (p.name || "").toLowerCase().includes(s) ||
-                (p.category || "").toLowerCase().includes(s) ||
+                (p.category?.name || "").toLowerCase().includes(s) ||
                 seller.toLowerCase().includes(s)
             );
         });
@@ -277,6 +300,67 @@ export default function AdminPanelPage({ showToast }) {
         }
     }
 
+    async function createCategory(e) {
+        e.preventDefault();
+
+        if (!newCategory.trim()) {
+            showToast?.("❌ Enter a category name", "error");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError("");
+
+            const res = await fetch(`${API_BASE}/api/admin/categories`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ name: newCategory.trim() }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.message || "Failed to create category");
+
+            showToast?.("✅ Category created!");
+            setNewCategory("");
+            await loadCategories();
+        } catch (e2) {
+            showToast?.(`❌ ${e2.message || "Create failed"}`, "error");
+            setError(e2.message || "Create failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function deleteCategory(categoryId) {
+        const ok = window.confirm("Delete this category?");
+        if (!ok) return;
+
+        try {
+            setLoading(true);
+            setError("");
+
+            const res = await fetch(`${API_BASE}/api/admin/categories/${categoryId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.message || "Failed to delete category");
+
+            showToast?.("🗑️ Category deleted");
+            await loadCategories();
+        } catch (e) {
+            showToast?.(`❌ ${e.message || "Delete failed"}`, "error");
+            setError(e.message || "Delete failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <div className="admin-wrap">
             <div className="admin-header">
@@ -325,6 +409,13 @@ export default function AdminPanelPage({ showToast }) {
                     >
                         Create Admin
                     </button>
+                    <button
+                        className={"admin-tab" + (tab === "categories" ? " admin-tab--active" : "")}
+                        onClick={() => setTab("categories")}
+                        type="button"
+                    >
+                        Categories
+                    </button>
                 </div>
             </div>
 
@@ -360,13 +451,14 @@ export default function AdminPanelPage({ showToast }) {
                     </div>
 
                     <div className="admin-table">
-                        <div className="admin-row admin-row--head admin-row--orders">
-                            <div className="admin-cell">Customer</div>
-                            <div className="admin-cell">Total</div>
-                            <div className="admin-cell">Status</div>
-                            <div className="admin-cell">Placed</div>
-                            <div className="admin-cell">Items</div>
-                            <div className="admin-cell">Actions</div>
+                        <div className="admin-row admin-row--head">
+                            <div className="admin-cell admin-cell--check"></div>
+                            <div className="admin-cell">Name</div>
+                            <div className="admin-cell">Category</div>
+                            <div className="admin-cell">Price</div>
+                            <div className="admin-cell">Stock</div>
+                            <div className="admin-cell">Seller</div>
+                            <div className="admin-cell">Created</div>
                         </div>
 
                         {loading && <div className="admin-empty">Loading...</div>}
@@ -399,7 +491,7 @@ export default function AdminPanelPage({ showToast }) {
                                             </div>
                                         </div>
 
-                                        <div className="admin-cell">{p.category}</div>
+                                        <div className="admin-cell">{p.category?.name || "Unknown"}</div>
                                         <div className="admin-cell">{formatPrice(p.price)}</div>
                                         <div className="admin-cell">
                                             <span className={"admin-pill " + (p.inStock ? "admin-pill--in" : "admin-pill--out")}>
@@ -571,6 +663,56 @@ export default function AdminPanelPage({ showToast }) {
                             Create Admin
                         </button>
                     </form>
+                </div>
+            )}
+
+            {tab === "categories" && (
+                <div className="admin-card">
+                    <div className="admin-controls">
+                        <form className="admin-form-inline" onSubmit={createCategory}>
+                            <input
+                                className="admin-input"
+                                value={newCategory}
+                                onChange={(e) => setNewCategory(e.target.value)}
+                                placeholder="New category name"
+                            />
+                            <button className="admin-primary" type="submit" disabled={loading}>
+                                Create Category
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="admin-table">
+                        <div className="admin-row admin-row--head">
+                            <div className="admin-cell">Name</div>
+                            <div className="admin-cell">Created</div>
+                            <div className="admin-cell">Actions</div>
+                        </div>
+
+                        {loading && <div className="admin-empty">Loading...</div>}
+
+                        {!loading && categories.length === 0 && (
+                            <div className="admin-empty">No categories found.</div>
+                        )}
+
+                        {!loading &&
+                            categories.map((cat) => (
+                                <div className="admin-row" key={cat._id}>
+                                    <div className="admin-cell">{cat.name}</div>
+                                    <div className="admin-cell">{formatDate(cat.createdAt)}</div>
+                                    <div className="admin-cell">
+                                        <button
+                                            className={"btn-danger-outline" + (loading ? " btn-disabled" : "")}
+                                            type="button"
+                                            disabled={loading}
+                                            onClick={() => deleteCategory(cat._id)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
                 </div>
             )}
         </div>

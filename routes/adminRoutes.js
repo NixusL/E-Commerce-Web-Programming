@@ -12,6 +12,9 @@ const {
   adminUpdateOrderStatus,
   adminDeleteOrder,
   adminCreateAdminUser,
+  adminListCategories,
+  adminCreateCategory,
+  adminDeleteCategory,
 } = require("../controllers/adminController");
 
 router.use(auth, requireAdmin);
@@ -27,5 +30,10 @@ router.delete("/orders/:id", adminDeleteOrder);
 
 // Users
 router.post("/users/admin", adminCreateAdminUser);
+
+// Categories
+router.get("/categories", adminListCategories);
+router.post("/categories", adminCreateCategory);
+router.delete("/categories/:id", adminDeleteCategory);
 
 module.exports = router;

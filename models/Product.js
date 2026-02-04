@@ -14,8 +14,9 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
     category: {
-      type: String,
-      default: 'Uncategorized',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: true,
     },
     description: {
       type: String,

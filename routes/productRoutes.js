@@ -6,6 +6,7 @@ const auth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 
 const {
+  getCategories,
   getAllProducts,
   getProductById,
   createProduct,
@@ -15,6 +16,7 @@ const {
 
 // public read
 router.get('/', getAllProducts);
+router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
 // create/update/delete require login

@@ -1,11 +1,24 @@
 // controllers/productController.js
 const Product = require('../models/Product');
+const Category = require('../models/Category');
 const Order = require("../models/Order");
+
+// GET /api/products/categories
+async function getCategories(req, res) {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
 
 // GET /api/products
 async function getAllProducts(req, res) {
   try {
     const products = await Product.find()
+      .populate("category", "name")
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
     res.json(products);
@@ -42,10 +55,25 @@ async function createProduct(req, res) {
       return res.status(400).json({ message: 'Name and price are required' });
     }
 
+    // Find or create category
+    let categoryDoc;
+    if (category && category.trim()) {
+      categoryDoc = await Category.findOne({ name: category.trim() });
+      if (!categoryDoc) {
+        categoryDoc = await Category.create({ name: category.trim() });
+      }
+    } else {
+      // Default to 'Uncategorized'
+      categoryDoc = await Category.findOne({ name: 'Uncategorized' });
+      if (!categoryDoc) {
+        categoryDoc = await Category.create({ name: 'Uncategorized' });
+      }
+    }
+
     const product = new Product({
       name,
       price: Number(price),
-      category: category || 'Uncategorized',
+      category: categoryDoc._id,
       description: description || '',
       emoji: emoji || '🛒',
       inStock: inStock ?? true,
@@ -53,7 +81,10 @@ async function createProduct(req, res) {
     });
 
     const savedProduct = await product.save();
-    res.status(201).json(savedProduct);
+    const populatedProduct = await Product.findById(savedProduct._id)
+      .populate('category', 'name')
+      .populate('createdBy', 'name email');
+    res.status(201).json(populatedProduct);
   } catch (error) {
     console.error('Error creating product:', error);
     res.status(500).json({ message: 'Server error' });
@@ -77,14 +108,35 @@ async function updateProduct(req, res) {
       return res.status(403).json({ message: "Not allowed to edit this product" });
     }
 
+    // Handle category separately
+    if (req.body.category !== undefined) {
+      let categoryDoc;
+      if (req.body.category && req.body.category.trim()) {
+        categoryDoc = await Category.findOne({ name: req.body.category.trim() });
+        if (!categoryDoc) {
+          categoryDoc = await Category.create({ name: req.body.category.trim() });
+        }
+      } else {
+        // Default to 'Uncategorized'
+        categoryDoc = await Category.findOne({ name: 'Uncategorized' });
+        if (!categoryDoc) {
+          categoryDoc = await Category.create({ name: 'Uncategorized' });
+        }
+      }
+      product.category = categoryDoc._id;
+    }
+
     // Only allow fields you want editable
-    const allowedFields = ["name", "price", "category", "description", "emoji", "inStock"];
+    const allowedFields = ["name", "price", "description", "emoji", "inStock"];
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) product[key] = req.body[key];
     }
 
     const updated = await product.save();
-    res.json(updated);
+    const populatedProduct = await Product.findById(updated._id)
+      .populate('category', 'name')
+      .populate('createdBy', 'name email');
+    res.json(populatedProduct);
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(400).json({ message: 'Invalid product ID or invalid data' });
@@ -131,6 +183,7 @@ async function deleteProduct(req, res) {
 }
 
 module.exports = {
+  getCategories,
   getAllProducts,
   getProductById,
   createProduct,

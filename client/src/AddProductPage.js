@@ -1,7 +1,7 @@
 // client/src/AddProductPage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CATEGORIES } from "./constants/categories";
+
 import EmojiSelect from "./components/EmojiSelect";
 
 const API_BASE = "http://localhost:5000";
@@ -17,16 +17,33 @@ export default function AddProductPage({ showToast }) {
     const [form, setForm] = useState({
         name: "",
         price: "",
-        category: "Accessories",
+        category: "",
         description: "",
         emoji: "🛒",
         inStock: true,
     });
 
+    const [categories, setCategories] = useState([]);
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    const [categoryMode, setCategoryMode] = useState("preset"); // preset | custom
-    const [customCategory, setCustomCategory] = useState("");
+    useEffect(() => {
+        async function fetchCategories() {
+            try {
+                setLoading(true);
+                const res = await fetch(`${API_BASE}/api/products/categories`);
+                if (!res.ok) throw new Error("Failed to fetch categories");
+                const data = await res.json();
+                setCategories(data);
+            } catch (err) {
+                setError("Failed to load categories");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchCategories();
+    }, []);
 
     if (!token) {
         navigate("/login");
@@ -103,43 +120,18 @@ export default function AddProductPage({ showToast }) {
                     Category
                     <select
                         className="auth-input"
-                        value={categoryMode === "preset" ? form.category : "__custom__"}
-                        onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === "__custom__") {
-                                setCategoryMode("custom");
-                                setField("category", "");
-                                setCustomCategory("");
-                            } else {
-                                setCategoryMode("preset");
-                                setField("category", v);
-                            }
-                        }}
+                        value={form.category}
+                        onChange={(e) => setField("category", e.target.value)}
+                        required
                     >
-                        {CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                                {c}
+                        <option value="">Select a category</option>
+                        {categories.map((category) => (
+                            <option key={category._id} value={category.name}>
+                                {category.name}
                             </option>
                         ))}
-                        <option value="__custom__">Other (type)</option>
                     </select>
                 </label>
-
-                {categoryMode === "custom" && (
-                    <label className="auth-label">
-                        Custom Category
-                        <input
-                            className="auth-input"
-                            value={customCategory}
-                            onChange={(e) => {
-                                setCustomCategory(e.target.value);
-                                setField("category", e.target.value);
-                            }}
-                            placeholder="e.g. Furniture"
-                            required
-                        />
-                    </label>
-                )}
 
                 <label className="auth-label">
                     Description

@@ -12,7 +12,6 @@ import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
 
 const API_BASE = "http://localhost:5000";
-const CATEGORIES = ["All", "Electronics", "Accessories", "Computers", "Audio"];
 
 function formatPrice(amount) {
   const n = Number(amount);
@@ -39,6 +38,7 @@ function ProductsPage({ onBuyNow, user }) {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -46,16 +46,23 @@ function ProductsPage({ onBuyNow, user }) {
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${API_BASE}/api/products`);
-        if (!res.ok) throw new Error("Failed to fetch products");
+        // Fetch products
+        const productsRes = await fetch(`${API_BASE}/api/products`);
+        if (!productsRes.ok) throw new Error("Failed to fetch products");
+        const productsData = await productsRes.json();
 
-        const data = await res.json();
-        setProducts(data);
+        // Fetch categories
+        const categoriesRes = await fetch(`${API_BASE}/api/products/categories`);
+        if (!categoriesRes.ok) throw new Error("Failed to fetch categories");
+        const categoriesData = await categoriesRes.json();
+
+        setProducts(productsData);
+        setCategories(categoriesData);
       } catch (err) {
         setError(err.message || "Unknown error");
       } finally {
@@ -63,13 +70,13 @@ function ProductsPage({ onBuyNow, user }) {
       }
     }
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   const filteredProducts =
     selectedCategory === "All"
       ? products
-      : products.filter((p) => p.category === selectedCategory);
+      : products.filter((p) => p.category?.name === selectedCategory);
 
   return (
     <>
@@ -81,17 +88,28 @@ function ProductsPage({ onBuyNow, user }) {
       </section>
 
       <section className="categories">
-        {CATEGORIES.map((category) => (
+        <button
+          key="All"
+          className={
+            "All" === selectedCategory
+              ? "category-button category-button--active"
+              : "category-button"
+          }
+          onClick={() => setSelectedCategory("All")}
+        >
+          All
+        </button>
+        {categories.map((category) => (
           <button
-            key={category}
+            key={category._id}
             className={
-              category === selectedCategory
+              category.name === selectedCategory
                 ? "category-button category-button--active"
                 : "category-button"
             }
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => setSelectedCategory(category.name)}
           >
-            {category}
+            {category.name}
           </button>
         ))}
       </section>
@@ -154,7 +172,7 @@ function ProductsPage({ onBuyNow, user }) {
                 </div>
 
                 <h2 className="product-name">{product.name}</h2>
-                <p className="product-category">{product.category}</p>
+                <p className="product-category">{product.category?.name || "Uncategorized"}</p>
                 <p className="product-desc">{product.description}</p>
 
                 <p className="product-price">{formatPrice(product.price)}</p>
