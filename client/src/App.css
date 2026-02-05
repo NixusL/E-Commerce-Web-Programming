@@ -896,7 +896,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: auto;
 }
 
 /* out of stock -> side-by-side */

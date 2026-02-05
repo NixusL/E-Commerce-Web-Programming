@@ -48,12 +48,16 @@ async function removeFromCart(req, res) {
   try {
     const { productId } = req.params;
 
-    const cart = await Cart.findOne({ user: req.user._id });
+    let cart = await Cart.findOne({ user: req.user._id });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     cart.items = cart.items.filter(item => item.product.toString() !== productId);
     await cart.save();
     await cart.populate("items.product");
+
+    // Filter out items with deleted products
+    cart.items = cart.items.filter(item => item.product !== null);
+    await cart.save();
 
     res.json(cart);
   } catch (err) {
@@ -66,10 +70,14 @@ async function removeFromCart(req, res) {
 // Get user's cart
 async function getCart(req, res) {
   try {
-    const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
+    let cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
     if (!cart) {
       return res.json({ items: [] });
     }
+    // Filter out items with deleted products
+    cart.items = cart.items.filter(item => item.product !== null);
+    // Save the cleaned cart
+    await cart.save();
     res.json(cart);
   } catch (err) {
     console.error("getCart error:", err);
