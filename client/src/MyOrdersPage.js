@@ -115,7 +115,7 @@ export default function MyOrdersPage({ showToast }) {
       ) : (
         <div style={{ display: "grid", gap: "1rem" }}>
           {orders.map((o) => {
-            const emoji = o.items?.[0]?.emoji || "🛒";
+            const image = o.items?.[0]?.image || "";
             const cancellable = ["pending", "processing"].includes(o.status);
 
             const st = statusStyle(o.status);
@@ -130,7 +130,7 @@ export default function MyOrdersPage({ showToast }) {
                   position: "relative",
                 }}
               >
-                {/* emoji top-left */}
+                {/* image top-left */}
                 <div
                   style={{
                     position: "absolute",
@@ -138,9 +138,13 @@ export default function MyOrdersPage({ showToast }) {
                     left: "12px",
                     fontSize: "1.35rem",
                   }}
-                  aria-label="product-emoji"
+                  aria-label="product-image"
                 >
-                  {emoji}
+                  {image ? (
+                    <img src={`http://localhost:5000${image}`} alt="Product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                  ) : (
+                    "🛒"
+                  )}
                 </div>
 
                 <div

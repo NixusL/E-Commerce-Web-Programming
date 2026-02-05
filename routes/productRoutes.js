@@ -11,7 +11,8 @@ const {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  upload
 } = require('../controllers/productController');
 
 // public read
@@ -20,8 +21,8 @@ router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
 // create/update/delete require login
-router.post('/', auth, authorize("seller", "admin"), createProduct);
-router.put('/:id', auth, authorize("seller", "admin"), updateProduct);
+router.post('/', auth, authorize("seller", "admin"), upload.single('image'), createProduct);
+router.put('/:id', auth, authorize("seller", "admin"), upload.single('image'), updateProduct);
 router.delete('/:id', auth, authorize("seller", "admin"), deleteProduct);
 
 module.exports = router;

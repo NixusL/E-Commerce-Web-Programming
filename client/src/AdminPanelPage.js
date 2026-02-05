@@ -38,7 +38,7 @@ function formatDate(iso) {
 export default function AdminPanelPage({ showToast }) {
     const token = getToken();
 
-    const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories | reports
+    const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -56,9 +56,6 @@ export default function AdminPanelPage({ showToast }) {
     const [qOrders, setQOrders] = useState("");
     const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
     const [newSeller, setNewSeller] = useState({ name: "", email: "", password: "" });
-
-    // reports
-    const [reports, setReports] = useState([]);
 
     const [expandedOrders, setExpandedOrders] = useState(() => new Set());
 
@@ -81,7 +78,6 @@ export default function AdminPanelPage({ showToast }) {
         if (tab === "products") loadProducts();
         if (tab === "orders") loadOrders();
         if (tab === "categories") loadCategories();
-        if (tab === "reports") loadReports();
         // users tab is a simple CTA (redirect)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab]);
@@ -134,24 +130,6 @@ export default function AdminPanelPage({ showToast }) {
             const data = await res.json().catch(() => []);
             if (!res.ok) throw new Error(data?.message || "Failed to load categories");
             setCategories(Array.isArray(data) ? data : []);
-        } catch (e) {
-            setError(e.message || "Network error");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function loadReports() {
-        if (!token) return;
-        try {
-            setLoading(true);
-            setError("");
-            const res = await fetch(`${API_BASE}/api/admin/reports`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await res.json().catch(() => []);
-            if (!res.ok) throw new Error(data?.message || "Failed to load reports");
-            setReports(Array.isArray(data) ? data : []);
         } catch (e) {
             setError(e.message || "Network error");
         } finally {
@@ -438,33 +416,6 @@ export default function AdminPanelPage({ showToast }) {
         }
     }
 
-    async function updateReportStatus(reportId, status) {
-        try {
-            setLoading(true);
-            setError("");
-
-            const res = await fetch(`${API_BASE}/api/admin/reports/${reportId}/status`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status }),
-            });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.message || "Failed to update report status");
-
-            showToast?.("✅ Report updated");
-            await loadReports();
-        } catch (e) {
-            showToast?.(`❌ ${e.message || "Update failed"}`, "error");
-            setError(e.message || "Update failed");
-        } finally {
-            setLoading(false);
-        }
-    }
-
     return (
         <div className="admin-wrap">
             <div className="admin-header">
@@ -526,13 +477,6 @@ export default function AdminPanelPage({ showToast }) {
                         type="button"
                     >
                         <FaTags className="tab-icon" /> Categories
-                    </button>
-                    <button
-                        className={"admin-tab" + (tab === "reports" ? " admin-tab--active" : "")}
-                        onClick={() => setTab("reports")}
-                        type="button"
-                    >
-                        <FaExclamationTriangle className="tab-icon" /> Reports
                     </button>
                 </div>
             </div>
@@ -604,7 +548,11 @@ export default function AdminPanelPage({ showToast }) {
 
                                         <div className="admin-cell">
                                             <div className="admin-item">
-                                                <span className="admin-emoji">{p.emoji || "🛒"}</span>
+                                                {p.image ? (
+                                                    <img src={`http://localhost:5000${p.image}`} alt={p.name} style={{ width: '30px', height: '30px', objectFit: 'cover', marginRight: '8px' }} />
+                                                ) : (
+                                                    <span className="admin-emoji">🛒</span>
+                                                )}
                                                 <span className="admin-item-name">{p.name}</span>
                                             </div>
                                         </div>
@@ -722,7 +670,11 @@ export default function AdminPanelPage({ showToast }) {
                                                 ) : (
                                                     (o.items || []).map((it, idx) => (
                                                         <div className="admin-order-item" key={idx}>
-                                                            <span className="admin-emoji">{it.emoji || "🛒"}</span>
+                                                            {it.image ? (
+                                                                <img src={`http://localhost:5000${it.image}`} alt={it.name} style={{ width: '30px', height: '30px', objectFit: 'cover', marginRight: '8px' }} />
+                                                            ) : (
+                                                                <span className="admin-emoji">🛒</span>
+                                                            )}
                                                             <span className="admin-order-name">{it.name}</span>
                                                             <span className="admin-order-qty">×{it.qty}</span>
                                                             <span className="admin-order-price">{formatPrice(it.price)}</span>
@@ -876,63 +828,6 @@ export default function AdminPanelPage({ showToast }) {
                                     </div>
                                 </div>
                             ))}
-                    </div>
-                </div>
-            )}
-
-            {tab === "reports" && (
-                <div className="admin-card">
-                    <div className="admin-table">
-                        <div className="admin-row admin-row--head">
-                            <div className="admin-cell">Product</div>
-                            <div className="admin-cell">Reason</div>
-                            <div className="admin-cell">Reported By</div>
-                            <div className="admin-cell">Status</div>
-                            <div className="admin-cell">Reported At</div>
-                            <div className="admin-cell">Actions</div>
-                        </div>
-
-                        {loading && <div className="admin-empty">Loading...</div>}
-
-                        {!loading && reports.length === 0 && (
-                            <div className="admin-empty">No reports found.</div>
-                        )}
-
-                        {!loading &&
-                            reports.map((r) => {
-                                const productName = typeof r.product === "object" ? r.product?.name : "Unknown";
-                                const reporterName = typeof r.reportedBy === "object" ? r.reportedBy?.name : "Unknown";
-                                const reviewerName = typeof r.reviewedBy === "object" ? r.reviewedBy?.name : "None";
-
-                                return (
-                                    <div className="admin-row" key={r._id}>
-                                        <div className="admin-cell">{productName}</div>
-                                        <div className="admin-cell">
-                                            <div>
-                                                <strong>{r.reason}</strong>
-                                                {r.customReason && <div style={{ fontSize: '0.9em', color: '#666' }}>{r.customReason}</div>}
-                                            </div>
-                                        </div>
-                                        <div className="admin-cell">{reporterName}</div>
-                                        <div className="admin-cell">
-                                            <select
-                                                className="admin-select"
-                                                value={r.status || "pending"}
-                                                onChange={(e) => updateReportStatus(r._id, e.target.value)}
-                                                disabled={loading}
-                                            >
-                                                <option value="pending">pending</option>
-                                                <option value="reviewed">reviewed</option>
-                                                <option value="dismissed">dismissed</option>
-                                            </select>
-                                        </div>
-                                        <div className="admin-cell">{formatDate(r.createdAt)}</div>
-                                        <div className="admin-cell">
-                                            {r.reviewedBy && <div style={{ fontSize: '0.9em', color: '#666' }}>Reviewed by {reviewerName}</div>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
                     </div>
                 </div>
             )}

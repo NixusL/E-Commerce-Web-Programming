@@ -1,10 +1,7 @@
-- [ ] Create Report model (models/Report.js) with fields: product, reportedBy, reason, customReason, status, reviewedBy
-- [ ] Create reportController.js with submitReport function
-- [ ] Create reportRoutes.js with POST /:id/report route
-- [ ] Update server.js to include reportRoutes
-- [ ] Update adminController.js to add adminListReports and adminUpdateReportStatus functions
-- [ ] Update adminRoutes.js to add GET /reports and PUT /reports/:id/status routes
-- [ ] Update AdminPanelPage.js to add "Reports" tab with list and review functionality
-- [ ] Create ReportProductPage.js for submitting reports (reason select + custom text)
-- [ ] Update HomePage.js to add "Report" button for each product
-- [ ] Update App.js to add route for /report/:id
+- [x] Add stock input field to AddProductPage.js
+- [x] Update AddProductPage.js form state to include stock, remove inStock
+- [x] Update AddProductPage.js onSubmit to send stock instead of inStock
+- [x] Add stock input field to EditProductPage.js
+- [x] Update EditProductPage.js form state to include stock, remove inStock
+- [x] Update EditProductPage.js onSubmit to send stock instead of inStock
+- [x] Remove "inStock" from allowedFields in updateProduct controller

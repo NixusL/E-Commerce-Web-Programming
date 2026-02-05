@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CATEGORIES } from "./constants/categories";
-import EmojiSelect from "./components/EmojiSelect";
 
 const API_BASE = "http://localhost:5000";
 
@@ -70,8 +69,8 @@ export default function EditProductPage({ showToast }) {
                     price: data.price ?? "",
                     category: data.category || "Uncategorized",
                     description: data.description || "",
-                    emoji: data.emoji || "🛒",
-                    inStock: data.inStock ?? true,
+                    image: null, // Will be set if editing existing image
+                    stock: data.stock ?? "",
                 });
 
                 const preset = CATEGORIES.includes(data.category);
@@ -97,16 +96,22 @@ export default function EditProductPage({ showToast }) {
         setError("");
 
         try {
+            const formData = new FormData();
+            formData.append('name', form.name);
+            formData.append('price', form.price);
+            formData.append('category', form.category);
+            formData.append('description', form.description);
+            formData.append('inStock', form.inStock);
+            if (form.image) {
+                formData.append('image', form.image);
+            }
+
             const res = await fetch(`${API_BASE}/api/products/${id}`, {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    ...form,
-                    price: Number(form.price),
-                }),
+                body: formData,
             });
 
             const data = await res.json().catch(() => ({}));
@@ -239,20 +244,26 @@ export default function EditProductPage({ showToast }) {
                 </label>
 
                 <label className="auth-label">
-                    Emoji
-                    <EmojiSelect
-                        value={form.emoji}
-                        onChange={(emoji) => setField("emoji", emoji)}
+                    Product Image
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setField("image", e.target.files[0])}
+                        className="auth-input"
                     />
                 </label>
 
-                <label className="auth-check">
+                <label className="auth-label">
+                    Stock Quantity
                     <input
-                        type="checkbox"
-                        checked={form.inStock}
-                        onChange={(e) => setField("inStock", e.target.checked)}
+                        className="auth-input"
+                        type="number"
+                        min="0"
+                        value={form.stock}
+                        onChange={(e) => setField("stock", e.target.value)}
+                        placeholder="0"
+                        required
                     />
-                    <span>In stock</span>
                 </label>
 
                 {error && <p style={{ color: "#fca5a5", margin: 0 }}>{error}</p>}

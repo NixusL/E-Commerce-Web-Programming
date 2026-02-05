@@ -2,6 +2,35 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Order = require("../models/Order");
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
 
 // GET /api/products/categories
 async function getCategories(req, res) {
@@ -49,11 +78,13 @@ async function getProductById(req, res) {
 // customer/admin can create products (sell)
 async function createProduct(req, res) {
   try {
-    const { name, price, category, inStock, description, emoji } = req.body;
+    const { name, price, category, stock, description } = req.body;
 
     if (!name || price == null) {
       return res.status(400).json({ message: 'Name and price are required' });
     }
+
+    const stockNum = stock ? Number(stock) : 0;
 
     // Find or create category
     let categoryDoc;
@@ -75,8 +106,9 @@ async function createProduct(req, res) {
       price: Number(price),
       category: categoryDoc._id,
       description: description || '',
-      emoji: emoji || '🛒',
-      inStock: inStock ?? true,
+      image: req.file ? `/uploads/${req.file.filename}` : '',
+      stock: stockNum,
+      inStock: stockNum > 0,
       createdBy: req.user?._id, // set ownership
     });
 
@@ -127,10 +159,18 @@ async function updateProduct(req, res) {
     }
 
     // Only allow fields you want editable
-    const allowedFields = ["name", "price", "description", "emoji", "inStock"];
+    const allowedFields = ["name", "price", "description", "image", "inStock", "stock"];
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) product[key] = req.body[key];
     }
+
+    // Handle image upload
+    if (req.file) {
+      product.image = `/uploads/${req.file.filename}`;
+    }
+
+    // Update inStock based on stock
+    product.inStock = product.stock > 0;
 
     const updated = await product.save();
     const populatedProduct = await Product.findById(updated._id)
@@ -188,5 +228,6 @@ module.exports = {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  upload
 };

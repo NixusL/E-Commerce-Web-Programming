@@ -20,8 +20,8 @@ const orderSchema = new mongoose.Schema(
         price: { type: Number, required: true, min: 0 },
         qty: { type: Number, default: 1, min: 1 },
 
-        // ✅ NEW: product emoji snapshot
-        emoji: { type: String, default: "🛒" },
+        // ✅ NEW: product image snapshot
+        image: { type: String, default: "" },
       },
     ],
 
@@ -29,8 +29,24 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "processing", "completed", "cancelled"],
+      enum: ["pending", "processing", "paid", "shipped", "delivered", "completed", "cancelled", "refunded"],
       default: "pending",
+    },
+
+    paymentIntentId: { type: String },
+
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
+    },
+
+    shippingAddress: {
+      street: { type: String },
+      city: { type: String },
+      state: { type: String },
+      zipCode: { type: String },
+      country: { type: String, default: "USA" },
     },
   },
   { timestamps: true }

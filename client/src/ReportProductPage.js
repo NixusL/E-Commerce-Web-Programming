@@ -129,7 +129,11 @@ export default function ReportProductPage({ showToast }) {
 
             <div className="home-product" style={{ maxWidth: "600px", margin: "0 auto" }}>
                 <div className="home-product-header">
-                    <span className="home-product-emoji">{product.emoji || "🛒"}</span>
+                    {product.image ? (
+                      <img src={`http://localhost:5000${product.image}`} alt={product.name} style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    ) : (
+                      <span className="home-product-emoji">🛒</span>
+                    )}
                     <h3 className="home-product-name">{product.name}</h3>
                 </div>
 

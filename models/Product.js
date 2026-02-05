@@ -22,13 +22,18 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    emoji: {
+    image: {
       type: String,
-      default: '🛒',
+      default: '',
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     inStock: {
       type: Boolean,
-      default: true,
+      default: false, // will be computed based on stock > 0
     },
 
     //who created/sells this product

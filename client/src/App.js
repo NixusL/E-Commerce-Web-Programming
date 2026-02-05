@@ -8,7 +8,9 @@ import MyOrdersPage from "./MyOrdersPage";
 import AddProductPage from "./AddProductPage";
 import EditProductPage from "./EditProductPage";
 import AdminPanelPage from "./AdminPanelPage";
-import ReportProductPage from "./ReportProductPage";
+import CartPage from "./CartPage";
+import CheckoutPage from "./CheckoutPage";
+import CheckoutSuccessPage from "./CheckoutSuccessPage";
 import { FiPlus } from "react-icons/fi";
 import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
@@ -35,7 +37,7 @@ function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
-function ProductsPage({ onBuyNow, user }) {
+function ProductsPage({ onAddToCart, user }) {
   const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -163,7 +165,11 @@ function ProductsPage({ onBuyNow, user }) {
                 )}
 
                 <div className="product-image placeholder">
-                  <span>{product.emoji || "🛒"}</span>
+                  {product.image ? (
+                    <img src={`http://localhost:5000${product.image}`} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                  ) : (
+                    <span>🛒</span>
+                  )}
                 </div>
 
                 <h2 className="product-name">{product.name}</h2>
@@ -204,10 +210,10 @@ function ProductsPage({ onBuyNow, user }) {
                   <button
                     className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
                     disabled={!product.inStock}
-                    onClick={() => onBuyNow(product._id)}
-                    title={!product.inStock ? "Out of stock" : "Buy now"}
+                    onClick={() => onAddToCart(product._id)}
+                    title={!product.inStock ? "Out of stock" : "Add to cart"}
                   >
-                    Buy Now
+                    Add to Cart
                   </button>
 
                   {!product.inStock && (
@@ -221,15 +227,6 @@ function ProductsPage({ onBuyNow, user }) {
                       Notify me
                     </button>
                   )}
-
-                  <button
-                    className="btn-danger-outline"
-                    type="button"
-                    onClick={() => navigate(`/report/${product._id}`)}
-                    title="Report this product"
-                  >
-                    Report
-                  </button>
                 </div>
               </article>
             );
@@ -313,7 +310,7 @@ export default function App() {
     navigate("/login");
   }
 
-  async function handleBuyNow(productId) {
+  async function handleAddToCart(productId) {
     const token = getToken();
     if (!token) {
       navigate("/login");
@@ -321,7 +318,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/orders/buy-now`, {
+      const res = await fetch(`${API_BASE}/api/cart/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -333,14 +330,13 @@ export default function App() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showToast(`❌ ${data?.message || "Failed to place order"}`);
+        showToast(`❌ ${data?.message || "Failed to add to cart"}`);
         return;
       }
 
-      showToast("✅ Order placed!");
-      setOrdersCount((c) => c + 1);
+      showToast("✅ Added to cart!");
     } catch {
-      showToast("❌ Network error placing order");
+      showToast("❌ Network error adding to cart");
     }
   }
 
@@ -420,6 +416,15 @@ export default function App() {
               )}
 
               <NavLink
+                to="/cart"
+                className={({ isActive }) =>
+                  "nav-link" + (isActive ? " active" : "")
+                }
+              >
+                Cart
+              </NavLink>
+
+              <NavLink
                 to="/my-orders"
                 className={({ isActive }) =>
                   "nav-link" + (isActive ? " active" : "")
@@ -446,7 +451,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route
             path="/products"
-            element={<ProductsPage onBuyNow={handleBuyNow} user={user} />}
+            element={<ProductsPage onAddToCart={handleAddToCart} user={user} />}
           />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -464,11 +469,10 @@ export default function App() {
             path="/products/:id/edit"
             element={<EditProductPage showToast={showToast} />}
           />
-          <Route
-            path="/report/:id"
-            element={<ReportProductPage showToast={showToast} />}
-          />
           <Route path="/admin" element={<AdminPanelPage showToast={showToast} />} />
+          <Route path="/cart" element={<CartPage showToast={showToast} />} />
+          <Route path="/checkout" element={<CheckoutPage showToast={showToast} />} />
+          <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
         </Routes>
       </main>
 
