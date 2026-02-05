@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, useNavigate, useLocation } from "react-router-dom";
 import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
 import RegisterPage from "./RegisterPage";
@@ -9,17 +9,17 @@ import AddProductPage from "./AddProductPage";
 import EditProductPage from "./EditProductPage";
 import AdminPanelPage from "./AdminPanelPage";
 import ReportProductPage from "./ReportProductPage";
+import CartPage from "./CartPage";
+import CheckoutPage from "./CheckoutPage";
 import { FiPlus } from "react-icons/fi";
 import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
+import { useCart } from "./cart/CartContext";
 
 const API_BASE = "http://localhost:5000";
 
-function formatPrice(amount) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return "$0.00";
-  return `$${n.toFixed(2)}`;
-}
+// tweak if your navbar is taller/shorter
+const NAVBAR_OFFSET_PX = 12;
 
 function readStoredUser() {
   const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -35,8 +35,9 @@ function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
-function ProductsPage({ onBuyNow, user }) {
+function ProductsPage({ onBuyNow, user, showToast }) {
   const navigate = useNavigate();
+  const { items, addToCart, removeFromCart, setQty } = useCart();
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [products, setProducts] = useState([]);
@@ -44,7 +45,7 @@ function ProductsPage({ onBuyNow, user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const myId = user?.id; // backend stores { id: user._id }
+  const myId = user?.id;
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
@@ -53,12 +54,10 @@ function ProductsPage({ onBuyNow, user }) {
         setLoading(true);
         setError(null);
 
-        // Fetch products
         const productsRes = await fetch(`${API_BASE}/api/products`);
         if (!productsRes.ok) throw new Error("Failed to fetch products");
         const productsData = await productsRes.json();
 
-        // Fetch categories
         const categoriesRes = await fetch(`${API_BASE}/api/products/categories`);
         if (!categoriesRes.ok) throw new Error("Failed to fetch categories");
         const categoriesData = await categoriesRes.json();
@@ -80,6 +79,34 @@ function ProductsPage({ onBuyNow, user }) {
       ? products
       : products.filter((p) => p.category?.name === selectedCategory);
 
+  const handleAddToCart = (product) => {
+    if (!product?.inStock) {
+      showToast({ message: "❌ Out of stock", type: "error" });
+      return;
+    }
+
+    const productId = product._id;
+    const existing = items.find((x) => x.productId === productId);
+    const prevQty = existing?.qty || 0;
+
+    try {
+      addToCart(product, 1);
+
+      showToast({
+        message: `✅ Added "${product.name}" to cart`,
+        type: "success",
+        undoLabel: "Undo",
+        undoneMessage: "✅ Undid add",
+        onUndo: () => {
+          if (prevQty > 0) setQty(productId, prevQty);
+          else removeFromCart(productId);
+        },
+      });
+    } catch {
+      showToast({ message: "❌ Failed to add to cart", type: "error" });
+    }
+  };
+
   return (
     <>
       <section className="categories">
@@ -94,6 +121,7 @@ function ProductsPage({ onBuyNow, user }) {
         >
           All
         </button>
+
         {categories.map((category) => (
           <button
             key={category._id}
@@ -122,13 +150,8 @@ function ProductsPage({ onBuyNow, user }) {
                 : product.createdBy?._id;
 
             const isMine = createdById && myId && createdById === myId;
-
             const canEdit = isAdmin ? true : isMine;
 
-            // outline logic:
-            // - normal user: own -> green
-            // - admin: own -> dark red
-            // - admin: others -> orange
             const cardClass =
               "product-card" +
               (isAdmin
@@ -136,8 +159,8 @@ function ProductsPage({ onBuyNow, user }) {
                   ? " product-card--admin-mine"
                   : " product-card--admin"
                 : isMine
-                  ? " product-card--mine"
-                  : "");
+                ? " product-card--mine"
+                : "");
 
             return (
               <article
@@ -145,7 +168,6 @@ function ProductsPage({ onBuyNow, user }) {
                 className={cardClass}
                 style={{ position: "relative" }}
               >
-                {/* Pencil icon top-right (owner/admin only) */}
                 {canEdit && (
                   <button
                     type="button"
@@ -167,10 +189,12 @@ function ProductsPage({ onBuyNow, user }) {
                 </div>
 
                 <h2 className="product-name">{product.name}</h2>
-                <p className="product-category">{product.category?.name || "Uncategorized"}</p>
+                <p className="product-category">
+                  {product.category?.name || "Uncategorized"}
+                </p>
                 <p className="product-desc">{product.description}</p>
 
-                <p className="product-price">{formatPrice(product.price)}</p>
+                <p className="product-price">${Number(product.price || 0).toFixed(2)}</p>
 
                 <p className="product-meta">
                   Listed by{" "}
@@ -195,7 +219,6 @@ function ProductsPage({ onBuyNow, user }) {
                   )}
                 </p>
 
-                {/* Stock pill */}
                 <p className={"stock-pill " + (product.inStock ? "stock-pill--in" : "stock-pill--out")}>
                   {product.inStock ? "✅ In stock" : "⛔ Out of stock"}
                 </p>
@@ -204,19 +227,26 @@ function ProductsPage({ onBuyNow, user }) {
                   <button
                     className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
                     disabled={!product.inStock}
-                    onClick={() => onBuyNow(product._id)}
+                    onClick={() => onBuyNow(product)}
                     title={!product.inStock ? "Out of stock" : "Buy now"}
                   >
                     Buy Now
+                  </button>
+
+                  <button
+                    className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
+                    disabled={!product.inStock}
+                    onClick={() => handleAddToCart(product)}
+                    title={!product.inStock ? "Out of stock" : "Add to cart"}
+                  >
+                    Add to Cart
                   </button>
 
                   {!product.inStock && (
                     <button
                       className="btn-notify"
                       type="button"
-                      onClick={() => {
-                        alert("🔔 Demo: we would notify you when it’s back in stock.");
-                      }}
+                      onClick={() => alert("🔔 Demo: we would notify you when it's back in stock.")}
                     >
                       Notify me
                     </button>
@@ -245,10 +275,19 @@ function ProductsPage({ onBuyNow, user }) {
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { cartCount } = useCart();
 
   const [user, setUser] = useState(readStoredUser());
   const [toast, setToast] = useState(null);
   const [ordersCount, setOrdersCount] = useState(0);
+
+  const toastTimerRef = useRef(null);
+  const remainingMsRef = useRef(0);
+  const startedAtRef = useRef(0);
+
+  const TOAST_MS = 4200;
+  const EXTRA_AFTER_HOVER_MS = 2500;
 
   useEffect(() => {
     function syncAuth() {
@@ -295,9 +334,45 @@ export default function App() {
     loadOrdersCount();
   }, [user]);
 
-  function showToast(message, type = "success") {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 2500);
+  function clearToastTimer() {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = null;
+  }
+
+  function startToastTimer(ms) {
+    clearToastTimer();
+    remainingMsRef.current = ms;
+    startedAtRef.current = Date.now();
+    toastTimerRef.current = setTimeout(() => setToast(null), ms);
+  }
+
+  function showToast(arg, type = "success") {
+    const next =
+      typeof arg === "string"
+        ? { message: arg, type }
+        : {
+            message: arg.message,
+            type: arg.type || "success",
+            onUndo: arg.onUndo,
+            undoLabel: arg.undoLabel || "Undo",
+            undoneMessage: arg.undoneMessage || "✅ Undid action",
+          };
+
+    setToast(next);
+    startToastTimer(TOAST_MS);
+  }
+
+  function toastPause() {
+    if (!toastTimerRef.current) return;
+    const elapsed = Date.now() - startedAtRef.current;
+    const remaining = Math.max(0, remainingMsRef.current - elapsed);
+    remainingMsRef.current = remaining;
+    clearToastTimer();
+  }
+
+  function toastResume() {
+    const resumeMs = remainingMsRef.current + EXTRA_AFTER_HOVER_MS;
+    startToastTimer(resumeMs);
   }
 
   function logout() {
@@ -313,44 +388,132 @@ export default function App() {
     navigate("/login");
   }
 
-  async function handleBuyNow(productId) {
-    const token = getToken();
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/api/orders/buy-now`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId, qty: 1 }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        showToast(`❌ ${data?.message || "Failed to place order"}`);
-        return;
-      }
-
-      showToast("✅ Order placed!");
-      setOrdersCount((c) => c + 1);
-    } catch {
-      showToast("❌ Network error placing order");
-    }
+  function onBuyNow(product) {
+    navigate(`/checkout?buyNow=${encodeURIComponent(product._id)}`);
   }
 
-  const roleEmoji = user?.role === "admin" ? "👑" : "";
+  const handleUndo = () => {
+    if (!toast?.onUndo) return;
+    try {
+      toast.onUndo();
+      setToast((t) => (t ? { ...t, message: t.undoneMessage, onUndo: null } : t));
+      startToastTimer(TOAST_MS);
+    } catch {
+      setToast({ message: "❌ Undo failed", type: "error" });
+      startToastTimer(TOAST_MS);
+    }
+  };
+
+  useEffect(() => {
+    // keep toast across route change
+  }, [location]);
+
+  const isErrorToast = toast?.type === "error";
 
   return (
     <div className="app">
       {toast && (
-        <div className={"toast" + (toast.type === "error" ? " toast--error" : "")}>
-          {toast.message}
+        <div
+          style={{
+            position: "fixed",
+            top: NAVBAR_OFFSET_PX,
+            right: 16,
+            zIndex: 9999,
+            maxWidth: "min(520px, calc(100vw - 32px))",
+          }}
+          onMouseEnter={toastPause}
+          onMouseLeave={toastResume}
+        >
+          {/* Toast card with close button inside */}
+          <div
+            className={"toast" + (toast.type === "error" ? " toast--error" : "")}
+            style={{
+              position: "relative",
+              width: "fit-content",
+              maxWidth: "min(520px, calc(100vw - 32px))",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              borderRadius: 14,
+              paddingLeft: 16,
+              paddingRight: 50,
+              paddingTop: 12,
+              paddingBottom: 12,
+            }}
+          >
+            <span style={{ whiteSpace: "normal", flex: 1 }}>{toast.message}</span>
+
+            {toast.onUndo && (
+              <button
+                type="button"
+                onClick={handleUndo}
+                style={{
+                  marginLeft: 8,
+                  padding: "7px 12px",
+                  borderRadius: 12,
+                  border: isErrorToast
+                    ? "1px solid rgba(255,255,255,0.35)"
+                    : "1px solid rgba(0,0,0,0.12)",
+                  background: isErrorToast ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.80)",
+                  color: isErrorToast ? "#fff" : "#111",
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {toast.undoLabel || "Undo"}
+              </button>
+            )}
+
+            {/* Close button on top-right of toast */}
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              onClick={() => {
+                clearToastTimer();
+                setToast(null);
+              }}
+              title="Dismiss"
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: isErrorToast
+                  ? "1px solid rgba(255,255,255,0.3)"
+                  : "1px solid rgba(0,0,0,0.12)",
+                background: isErrorToast ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.90)",
+                color: isErrorToast ? "#fff" : "#111",
+                cursor: "pointer",
+                fontWeight: 1000,
+                fontSize: 24,
+                lineHeight: "1",
+                textAlign: "center",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isErrorToast
+                  ? "rgba(0,0,0,0.45)"
+                  : "rgba(255,255,255,0.95)";
+                e.currentTarget.style.transform = "scale(1.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = isErrorToast
+                  ? "rgba(0,0,0,0.35)"
+                  : "rgba(255,255,255,0.90)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
@@ -373,20 +536,23 @@ export default function App() {
 
           <NavLink
             to="/products"
-            className={({ isActive }) =>
-              "nav-link" + (isActive ? " active" : "")
-            }
+            className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
           >
             Products
+          </NavLink>
+
+          <NavLink
+            to="/cart"
+            className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+          >
+            Cart <span className="badge">{cartCount}</span>
           </NavLink>
 
           {!user ? (
             <>
               <NavLink
                 to="/login"
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active" : "")
-                }
+                className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
                 Login
               </NavLink>
@@ -402,13 +568,10 @@ export default function App() {
             </>
           ) : (
             <>
-              {/* ✅ List Product link with + badge - only for sellers and admins */}
               {(user?.role === "seller" || user?.role === "admin") && (
                 <NavLink
                   to="/products/new"
-                  className={({ isActive }) =>
-                    "nav-link" + (isActive ? " active" : "")
-                  }
+                  className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
                 >
                   List Product
                   <span className="plus-badge" aria-label="Add">
@@ -421,9 +584,7 @@ export default function App() {
 
               <NavLink
                 to="/my-orders"
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active" : "")
-                }
+                className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
                 My Orders <span className="badge">{ordersCount}</span>
               </NavLink>
@@ -444,30 +605,28 @@ export default function App() {
       <main className="main">
         <Routes>
           <Route path="/" element={<HomePage />} />
+
           <Route
             path="/products"
-            element={<ProductsPage onBuyNow={handleBuyNow} user={user} />}
-          />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/my-orders"
-            element={<MyOrdersPage showToast={showToast} />}
+            element={<ProductsPage onBuyNow={onBuyNow} user={user} showToast={showToast} />}
           />
 
-          {/* ✅ New product routes */}
+          <Route path="/cart" element={<CartPage showToast={showToast} />} />
+
           <Route
-            path="/products/new"
-            element={<AddProductPage showToast={showToast} />}
+            path="/checkout"
+            element={<CheckoutPage showToast={showToast} apiBase={API_BASE} />}
           />
-          <Route
-            path="/products/:id/edit"
-            element={<EditProductPage showToast={showToast} />}
-          />
-          <Route
-            path="/report/:id"
-            element={<ReportProductPage showToast={showToast} />}
-          />
+
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          <Route path="/my-orders" element={<MyOrdersPage showToast={showToast} />} />
+
+          <Route path="/products/new" element={<AddProductPage showToast={showToast} />} />
+          <Route path="/products/:id/edit" element={<EditProductPage showToast={showToast} />} />
+
+          <Route path="/report/:id" element={<ReportProductPage showToast={showToast} />} />
           <Route path="/admin" element={<AdminPanelPage showToast={showToast} />} />
         </Routes>
       </main>
