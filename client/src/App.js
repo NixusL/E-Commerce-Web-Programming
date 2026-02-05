@@ -14,6 +14,12 @@ import CheckoutSuccessPage from "./CheckoutSuccessPage";
 import { FiPlus } from "react-icons/fi";
 import { FiEdit2 } from "react-icons/fi";
 import { FiShield } from "react-icons/fi";
+import { FiShoppingBag } from "react-icons/fi";
+import { FiShoppingCart } from "react-icons/fi";
+import { FiList } from "react-icons/fi";
+import { FiLogIn } from "react-icons/fi";
+import { FiUserPlus } from "react-icons/fi";
+import { FiLogOut } from "react-icons/fi";
 import { useCart } from "./cart/CartContext";
 
 const API_BASE = "http://localhost:5000";
@@ -542,6 +548,7 @@ export default function App() {
                 "nav-link nav-link--admin" + (isActive ? " active" : "")
               }
             >
+              <FiShield className="nav-icon" />
               Admin Panel
             </NavLink>
           )}
@@ -550,6 +557,7 @@ export default function App() {
             to="/products"
             className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
           >
+            <FiShoppingBag className="nav-icon" />
             Products
           </NavLink>
 
@@ -557,6 +565,7 @@ export default function App() {
             to="/cart"
             className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
           >
+            <FiShoppingCart className="nav-icon" />
             Cart <span className="badge">{cartCount}</span>
           </NavLink>
 
@@ -566,6 +575,7 @@ export default function App() {
                 to="/login"
                 className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
+                <FiLogIn className="nav-icon" />
                 Login
               </NavLink>
 
@@ -575,6 +585,7 @@ export default function App() {
                   "nav-link nav-link-primary" + (isActive ? " active" : "")
                 }
               >
+                <FiUserPlus className="nav-icon" />
                 Sign up
               </NavLink>
             </>
@@ -585,6 +596,7 @@ export default function App() {
                   to="/products/new"
                   className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
                 >
+                  <FiPlus className="nav-icon" />
                   List Product
                   <span className="plus-badge" aria-label="Add">
                     <span className="plus-icon-wrap">
@@ -600,6 +612,7 @@ export default function App() {
                   "nav-link" + (isActive ? " active" : "")
                 }
               >
+                <FiShoppingCart className="nav-icon" />
                 Cart
               </NavLink>
 
@@ -607,6 +620,7 @@ export default function App() {
                 to="/my-orders"
                 className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
+                <FiList className="nav-icon" />
                 My Orders <span className="badge">{ordersCount}</span>
               </NavLink>
 
@@ -616,6 +630,7 @@ export default function App() {
               </span>
 
               <button type="button" className="nav-link-button" onClick={logout}>
+                <FiLogOut className="nav-icon" />
                 Logout
               </button>
             </>
