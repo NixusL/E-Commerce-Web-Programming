@@ -3,9 +3,17 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
-const { requestSellerUpgrade } = require("../controllers/userController");
+const {
+  requestSellerUpgrade,
+  becomeSeller,
+  getSellerRequestStatus,
+} = require("../controllers/userController");
 
-// Customer requests seller role
+// ✅ Keep existing functionality
 router.post("/request-seller", auth, requestSellerUpgrade);
+
+// ✅ Add the routes your frontend calls
+router.post("/become-seller", auth, becomeSeller);
+router.get("/seller-request/status", auth, getSellerRequestStatus);
 
 module.exports = router;

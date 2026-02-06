@@ -18,6 +18,37 @@ function readStoredUser() {
   }
 }
 
+/**
+ * Read response body safely:
+ * - Reads text once
+ * - Parses JSON if possible
+ * - Always returns { ok, status, data, rawText }
+ */
+async function safeReadResponse(res) {
+  const status = res.status;
+  let rawText = "";
+  let data = null;
+
+  try {
+    rawText = await res.text(); // read once
+  } catch (e) {
+    // Extremely rare, but keep it safe
+    rawText = "";
+  }
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { message: rawText }; // non-json body (html/plain text)
+    }
+  } else {
+    data = {}; // empty body
+  }
+
+  return { ok: res.ok, status, data, rawText };
+}
+
 export default function SellerRequestPage() {
   const navigate = useNavigate();
   const user = readStoredUser();
@@ -33,20 +64,20 @@ export default function SellerRequestPage() {
     window.dispatchEvent(new CustomEvent("toast:push", { detail }));
   }
 
-  // Check if user is already a seller or has existing request
   useEffect(() => {
     if (!user || !token) {
       navigate("/login");
       return;
     }
 
-    // If already a seller, redirect
+    // If already a seller/admin, redirect
     if (user.role === "seller" || user.role === "admin") {
       navigate("/products");
       return;
     }
 
     checkExistingRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token, navigate]);
 
   async function checkExistingRequest() {
@@ -55,12 +86,21 @@ export default function SellerRequestPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.hasRequest) {
-          setHasExistingRequest(true);
-          setRequestStatus(data.status);
-        }
+      const { ok, status, data, rawText } = await safeReadResponse(res);
+
+      if (!ok) {
+        console.error("Status check failed:", status, data, rawText);
+        // Don't toast here (keeps UI clean), but you can if you want:
+        // pushToast({ type: "error", message: `❌ Status check failed (${status})`, durationMs: 3000 });
+        return;
+      }
+
+      if (data?.hasRequest) {
+        setHasExistingRequest(true);
+        setRequestStatus(data.status);
+      } else {
+        setHasExistingRequest(false);
+        setRequestStatus(null);
       }
     } catch (err) {
       console.error("Error checking request status:", err);
@@ -88,49 +128,59 @@ export default function SellerRequestPage() {
         body: JSON.stringify({}),
       });
 
-      const data = await res.json();
+      const { ok, status, data, rawText } = await safeReadResponse(res);
 
-      if (!res.ok) {
-        setError(data?.message || "Failed to submit request");
+      if (!ok) {
+        // This will show the REAL backend error (401/404/500 etc)
+        const msg =
+          data?.message ||
+          `Request failed (${status}). Check server console and /api/users routes.`;
+
+        console.error("Become-seller failed:", status, data, rawText);
+
+        setError(msg);
         pushToast({
           type: "error",
-          message: `❌ ${data?.message || "Failed to submit request"}`,
-          durationMs: 4000,
+          message: `❌ ${msg}`,
+          durationMs: 5000,
         });
         return;
       }
 
-      setSuccess("✅ Your seller request has been submitted!");
+      // Success
+      setSuccess(data?.message || "✅ Your seller request has been submitted!");
       setHasExistingRequest(true);
-      setRequestStatus("pending");
+      setRequestStatus(data?.status || "pending");
 
       pushToast({
         type: "success",
-        message: "📨 Seller request submitted! An admin will review it soon.",
+        message:
+          data?.message ||
+          "📨 Seller request submitted! An admin will review it soon.",
         durationMs: 4000,
       });
 
-      // Redirect after 2 seconds
+      // Optional redirect
       setTimeout(() => {
         navigate("/products");
       }, 2000);
     } catch (err) {
-      const errMsg = "Network error. Please try again.";
+      console.error("Become-seller request error:", err);
+
+      // Note: this is a TRUE network error (server down / CORS / connection)
+      const errMsg = "Network error (cannot reach backend). Is server running on :5000?";
       setError(errMsg);
       pushToast({
         type: "error",
         message: `❌ ${errMsg}`,
-        durationMs: 4000,
+        durationMs: 5000,
       });
-      console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  if (!user || !token) {
-    return null;
-  }
+  if (!user || !token) return null;
 
   return (
     <div className="seller-request-page">
@@ -139,7 +189,8 @@ export default function SellerRequestPage() {
           <>
             <h1>Become a Seller</h1>
             <p className="form-subtitle">
-              Join our marketplace and start selling your products to thousands of customers.
+              Join our marketplace and start selling your products to thousands
+              of customers.
             </p>
 
             <div className="seller-benefits">
@@ -153,6 +204,7 @@ export default function SellerRequestPage() {
             </div>
 
             {error && <div className="form-error">{error}</div>}
+            {success && <div className="form-success">{success}</div>}
 
             <div className="form-actions">
               <button
@@ -196,17 +248,34 @@ export default function SellerRequestPage() {
                 <>
                   <div className="status-icon rejected">❌</div>
                   <h2>Request Rejected</h2>
-                  <p>Unfortunately, your request was not approved at this time.</p>
+                  <p>
+                    Unfortunately, your request was not approved at this time.
+                  </p>
                   <p className="status-note">
                     Please contact support for more information.
                   </p>
                 </>
               )}
+
+              {!requestStatus && (
+                <>
+                  <div className="status-icon pending">ℹ️</div>
+                  <h2>Status Unknown</h2>
+                  <p>
+                    We couldn't read your seller request status yet. Try again.
+                  </p>
+                </>
+              )}
             </div>
 
-            <button onClick={() => navigate("/products")} className="btn-primary">
-              Go to Products
-            </button>
+            <div className="form-actions">
+              <button onClick={() => navigate("/products")} className="btn-primary">
+                Go to Products
+              </button>
+              <button onClick={checkExistingRequest} className="btn-secondary">
+                Refresh Status
+              </button>
+            </div>
           </>
         )}
       </div>

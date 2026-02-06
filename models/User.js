@@ -43,6 +43,17 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    sellerRequestStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none"
+    },
+    
+    isSeller: {
+      type: Boolean,
+      default: false
+    },
+
     sellerApprovedAt: {
       type: Date,
       default: null,
