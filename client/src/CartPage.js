@@ -10,9 +10,14 @@ function formatPrice(amount) {
   return `$${n.toFixed(2)}`;
 }
 
-export default function CartPage({ showToast }) {
+function pushToast(detail) {
+  window.dispatchEvent(new CustomEvent("toast:push", { detail }));
+}
+
+export default function CartPage() {
   const navigate = useNavigate();
-  const { items, hydrated, cartTotal, setQty, removeFromCart, clearCart } = useCart();
+  const { items, hydrated, cartTotal, setQty, removeFromCart, clearCart } =
+    useCart();
 
   if (!hydrated) return <p>Loading cart...</p>;
 
@@ -48,14 +53,47 @@ export default function CartPage({ showToast }) {
                     onClick={async () => {
                       try {
                         const next = (item.qty || 1) - 1;
+
                         if (next <= 0) {
+                          // remove with undo
+                          const snapshot = { ...item };
                           await removeFromCart(item.productId);
-                          showToast?.(`✅ Removed "${item.name}" from cart`);
+
+                          pushToast({
+                            intent: "cart",
+                            type: "success",
+                            message: `🗑️ Removed "${item.name}"`,
+                            undoLabel: "Undo",
+                            canUndo: true,
+                            onUndo: () => {
+                              // re-add item back (best effort)
+                              window.dispatchEvent(
+                                new CustomEvent("cart:undo:restore", {
+                                  detail: {
+                                    items: null,
+                                    addOne: {
+                                      productId: snapshot.productId,
+                                      name: snapshot.name,
+                                      price: snapshot.price,
+                                      image: snapshot.image,
+                                      qty: snapshot.qty || 1,
+                                    },
+                                  },
+                                })
+                              );
+                            },
+                          });
+
                           return;
                         }
+
                         await setQty(item.productId, next);
                       } catch (e) {
-                        showToast?.(`❌ ${e.message || "Failed to update quantity"}`, "error");
+                        pushToast({
+                          type: "error",
+                          message: `❌ ${e.message || "Failed to update quantity"}`,
+                          canUndo: false,
+                        });
                       }
                     }}
                   >
@@ -69,7 +107,11 @@ export default function CartPage({ showToast }) {
                       try {
                         await setQty(item.productId, (item.qty || 1) + 1);
                       } catch (e) {
-                        showToast?.(`❌ ${e.message || "Failed to update quantity"}`, "error");
+                        pushToast({
+                          type: "error",
+                          message: `❌ ${e.message || "Failed to update quantity"}`,
+                          canUndo: false,
+                        });
                       }
                     }}
                   >
@@ -85,10 +127,38 @@ export default function CartPage({ showToast }) {
                   className="btn-remove"
                   onClick={async () => {
                     try {
+                      const snapshot = { ...item };
                       await removeFromCart(item.productId);
-                      showToast?.(`✅ Removed "${item.name}" from cart`);
+
+                      pushToast({
+                        intent: "cart",
+                        type: "success",
+                        message: `🗑️ Removed "${item.name}"`,
+                        undoLabel: "Undo",
+                        canUndo: true,
+                        onUndo: () => {
+                          window.dispatchEvent(
+                            new CustomEvent("cart:undo:restore", {
+                              detail: {
+                                items: null,
+                                addOne: {
+                                  productId: snapshot.productId,
+                                  name: snapshot.name,
+                                  price: snapshot.price,
+                                  image: snapshot.image,
+                                  qty: snapshot.qty || 1,
+                                },
+                              },
+                            })
+                          );
+                        },
+                      });
                     } catch (e) {
-                      showToast?.(`❌ ${e.message || "Failed to remove item"}`, "error");
+                      pushToast({
+                        type: "error",
+                        message: `❌ ${e.message || "Failed to remove item"}`,
+                        canUndo: false,
+                      });
                     }
                   }}
                 >
@@ -105,10 +175,29 @@ export default function CartPage({ showToast }) {
               className="btn-secondary"
               onClick={async () => {
                 try {
+                  const snapshotItems = items.map((x) => ({ ...x }));
                   await clearCart();
-                  showToast?.("✅ Cart cleared");
+
+                  pushToast({
+                    intent: "cart",
+                    type: "success",
+                    message: "🧹 Cart cleared",
+                    undoLabel: "Undo",
+                    canUndo: true,
+                    onUndo: () => {
+                      window.dispatchEvent(
+                        new CustomEvent("cart:undo:restore", {
+                          detail: { items: snapshotItems },
+                        })
+                      );
+                    },
+                  });
                 } catch (e) {
-                  showToast?.(`❌ ${e.message || "Failed to clear cart"}`, "error");
+                  pushToast({
+                    type: "error",
+                    message: `❌ ${e.message || "Failed to clear cart"}`,
+                    canUndo: false,
+                  });
                 }
               }}
             >

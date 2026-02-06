@@ -8,7 +8,6 @@ import React, {
 } from "react";
 
 const CartContext = createContext(null);
-
 const API_BASE = "http://localhost:5000";
 
 function getToken() {
@@ -25,8 +24,9 @@ function mapServerCartToItems(cart) {
       name: x.product.name || "Unnamed product",
       price: Number(x.product.price) || 0,
       qty: Number(x.qty) || 1,
+      // your schema doesn't have emoji; keep fallback for UI
       emoji: x.product.emoji || "🛒",
-      image: x.product.image || "", // backend path like "/uploads/..."
+      image: x.product.image || "", // "/uploads/..."
     }));
 }
 
@@ -93,7 +93,7 @@ export function CartProvider({ children }) {
     const token = getToken();
     if (!token) throw new Error("You must be logged in to add to cart");
 
-    const id = product?._id || product?.id;
+    const id = product?._id || product?.id || product?.productId;
     if (!id) throw new Error("Missing product id");
 
     const q = Number(qty);
@@ -113,8 +113,9 @@ export function CartProvider({ children }) {
       throw new Error(data?.message || "Failed to add to cart");
     }
 
-    const cart = await res.json();
-    setItems(mapServerCartToItems(cart));
+    // accept response if provided, then refresh to be safe
+    await res.json().catch(() => null);
+    await refreshCart();
   }
 
   async function removeFromCart(productId) {
@@ -132,12 +133,11 @@ export function CartProvider({ children }) {
       throw new Error(data?.message || "Failed to remove from cart");
     }
 
-    const cart = await res.json();
-    setItems(mapServerCartToItems(cart));
+    await res.json().catch(() => null);
+    await refreshCart();
   }
 
-  // Your backend doesn't have "set qty" or decrement,
-  // so we implement SET by: remove -> add with new qty.
+  // Implement SET by: remove -> add with new qty.
   async function setQty(productId, newQty) {
     const token = getToken();
     if (!token) throw new Error("You must be logged in to modify cart");
@@ -150,7 +150,6 @@ export function CartProvider({ children }) {
       return;
     }
 
-    // remove first, then add desired qty
     const removeRes = await fetch(`${API_BASE}/api/cart/remove/${productId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
@@ -175,8 +174,8 @@ export function CartProvider({ children }) {
       throw new Error(data?.message || "Failed to update quantity");
     }
 
-    const cart = await addRes.json();
-    setItems(mapServerCartToItems(cart));
+    await addRes.json().catch(() => null);
+    await refreshCart();
   }
 
   async function clearCart() {
@@ -193,7 +192,8 @@ export function CartProvider({ children }) {
       throw new Error(data?.message || "Failed to clear cart");
     }
 
-    setItems([]);
+    await res.json().catch(() => null);
+    await refreshCart();
   }
 
   const api = useMemo(() => {
