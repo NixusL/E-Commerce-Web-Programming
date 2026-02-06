@@ -11,16 +11,10 @@ import AdminPanelPage from "./AdminPanelPage";
 import CartPage from "./CartPage";
 import CheckoutPage from "./CheckoutPage";
 import CheckoutSuccessPage from "./CheckoutSuccessPage";
-import { FiPlus } from "react-icons/fi";
-import { FiEdit2 } from "react-icons/fi";
-import { FiShield } from "react-icons/fi";
-import { FiShoppingBag } from "react-icons/fi";
-import { FiShoppingCart } from "react-icons/fi";
-import { FiList } from "react-icons/fi";
-import { FiLogIn } from "react-icons/fi";
-import { FiUserPlus } from "react-icons/fi";
-import { FiLogOut } from "react-icons/fi";
+
+import { FiPlus, FiEdit2, FiShield, FiShoppingBag, FiShoppingCart, FiList, FiLogIn, FiUserPlus, FiLogOut } from "react-icons/fi";
 import { useCart } from "./cart/CartContext";
+import MiniCart from "./MiniCart";
 
 const API_BASE = "http://localhost:5000";
 
@@ -41,9 +35,14 @@ function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
+function formatPrice(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "$0.00";
+  return `$${n.toFixed(2)}`;
+}
+
 function ProductsPage({ onAddToCart, user, showToast }) {
   const navigate = useNavigate();
-  const { items, addToCart, removeFromCart, setQty } = useCart();
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [products, setProducts] = useState([]);
@@ -84,34 +83,6 @@ function ProductsPage({ onAddToCart, user, showToast }) {
     selectedCategory === "All"
       ? products
       : products.filter((p) => p.category?.name === selectedCategory);
-
-  const handleAddToCart = (product) => {
-    if (!product?.inStock) {
-      showToast({ message: "❌ Out of stock", type: "error" });
-      return;
-    }
-
-    const productId = product._id;
-    const existing = items.find((x) => x.productId === productId);
-    const prevQty = existing?.qty || 0;
-
-    try {
-      addToCart(product, 1);
-
-      showToast({
-        message: `✅ Added "${product.name}" to cart`,
-        type: "success",
-        undoLabel: "Undo",
-        undoneMessage: "✅ Undid add",
-        onUndo: () => {
-          if (prevQty > 0) setQty(productId, prevQty);
-          else removeFromCart(productId);
-        },
-      });
-    } catch {
-      showToast({ message: "❌ Failed to add to cart", type: "error" });
-    }
-  };
 
   return (
     <>
@@ -165,8 +136,8 @@ function ProductsPage({ onAddToCart, user, showToast }) {
                   ? " product-card--admin-mine"
                   : " product-card--admin"
                 : isMine
-                ? " product-card--mine"
-                : "");
+                  ? " product-card--mine"
+                  : "");
 
             return (
               <article
@@ -179,7 +150,11 @@ function ProductsPage({ onAddToCart, user, showToast }) {
                     type="button"
                     className={
                       "icon-btn" +
-                      (isAdmin ? (isMine ? " icon-btn--admin-mine" : " icon-btn--admin") : "")
+                      (isAdmin
+                        ? isMine
+                          ? " icon-btn--admin-mine"
+                          : " icon-btn--admin"
+                        : "")
                     }
                     title="Edit product"
                     onClick={() => navigate(`/products/${product._id}/edit`)}
@@ -191,11 +166,7 @@ function ProductsPage({ onAddToCart, user, showToast }) {
                 )}
 
                 <div className="product-image placeholder">
-                  {product.image ? (
-                    <img src={`http://localhost:5000${product.image}`} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
-                  ) : (
-                    <span>🛒</span>
-                  )}
+                  <span>{product.emoji || "🛒"}</span>
                 </div>
 
                 <h2 className="product-name">{product.name}</h2>
@@ -204,7 +175,7 @@ function ProductsPage({ onAddToCart, user, showToast }) {
                 </p>
                 <p className="product-desc">{product.description}</p>
 
-                <p className="product-price">${Number(product.price || 0).toFixed(2)}</p>
+                <p className="product-price">{formatPrice(product.price)}</p>
 
                 <p className="product-meta">
                   Listed by{" "}
@@ -229,29 +200,45 @@ function ProductsPage({ onAddToCart, user, showToast }) {
                   )}
                 </p>
 
-                <p className={"stock-pill " + (product.inStock ? "stock-pill--in" : "stock-pill--out")}>
+                <p
+                  className={
+                    "stock-pill " + (product.inStock ? "stock-pill--in" : "stock-pill--out")
+                  }
+                >
                   {product.inStock ? "✅ In stock" : "⛔ Out of stock"}
                 </p>
 
-                <div className={"product-actions" + (!product.inStock ? " product-actions--row" : "")}>
+                <div
+                  className={
+                    "product-actions" + (!product.inStock ? " product-actions--row" : "")
+                  }
+                >
                   <button
                     className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
                     disabled={!product.inStock}
-                    onClick={() => handleAddToCart(product)}
+                    onClick={() => navigate(`/checkout?buyNow=${product._id}`)}
+                    title={!product.inStock ? "Out of stock" : "Buy now"}
+                  >
+                    Buy Now
+                  </button>
+
+                  <button
+                    className={"btn-secondary " + (!product.inStock ? "btn-disabled" : "")}
+                    disabled={!product.inStock}
+                    onClick={() => onAddToCart(product)}
                     title={!product.inStock ? "Out of stock" : "Add to cart"}
                   >
                     Add to Cart
                   </button>
 
-                  {!product.inStock && (
-                    <button
-                      className="btn-notify"
-                      type="button"
-                      onClick={() => alert("🔔 Demo: we would notify you when it's back in stock.")}
-                    >
-                      Notify me
-                    </button>
-                  )}
+                  <button
+                    className="btn-danger-outline"
+                    type="button"
+                    onClick={() => navigate(`/report/${product._id}`)}
+                    title="Report this product"
+                  >
+                    Report
+                  </button>
                 </div>
               </article>
             );
@@ -268,18 +255,19 @@ function ProductsPage({ onAddToCart, user, showToast }) {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cartCount } = useCart();
+
+  const { cartCount, addToCart } = useCart();
 
   const [user, setUser] = useState(readStoredUser());
   const [toast, setToast] = useState(null);
   const [ordersCount, setOrdersCount] = useState(0);
 
   const toastTimerRef = useRef(null);
-  const remainingMsRef = useRef(0);
   const startedAtRef = useRef(0);
+  const remainingMsRef = useRef(0);
 
-  const TOAST_MS = 4200;
-  const EXTRA_AFTER_HOVER_MS = 2500;
+  const TOAST_MS = 3500;
+  const EXTRA_AFTER_HOVER_MS = 1800;
 
   useEffect(() => {
     function syncAuth() {
@@ -324,18 +312,23 @@ export default function App() {
     }
 
     loadOrdersCount();
-  }, [user]);
+  }, [user, location.pathname]);
 
   function clearToastTimer() {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = null;
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
   }
 
   function startToastTimer(ms) {
     clearToastTimer();
-    remainingMsRef.current = ms;
     startedAtRef.current = Date.now();
-    toastTimerRef.current = setTimeout(() => setToast(null), ms);
+    remainingMsRef.current = ms;
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      clearToastTimer();
+    }, ms);
   }
 
   function showToast(arg, type = "success") {
@@ -380,7 +373,7 @@ export default function App() {
     navigate("/login");
   }
 
-  async function handleAddToCart(productId) {
+  async function handleAddToCart(product) {
     const token = getToken();
     if (!token) {
       navigate("/login");
@@ -388,146 +381,54 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/cart/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId, qty: 1 }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        showToast(`❌ ${data?.message || "Failed to add to cart"}`);
-        return;
-      }
-
-      showToast("✅ Added to cart!");
-    } catch {
-      showToast("❌ Network error adding to cart");
+      await addToCart(product, 1);
+      showToast(`✅ Added "${product.name}" to cart`);
+    } catch (e) {
+      showToast(`❌ ${e.message || "Failed to add to cart"}`, "error");
     }
   }
-
-  const handleUndo = () => {
-    if (!toast?.onUndo) return;
-    try {
-      toast.onUndo();
-      setToast((t) => (t ? { ...t, message: t.undoneMessage, onUndo: null } : t));
-      startToastTimer(TOAST_MS);
-    } catch {
-      setToast({ message: "❌ Undo failed", type: "error" });
-      startToastTimer(TOAST_MS);
-    }
-  };
-
-  useEffect(() => {
-    // keep toast across route change
-  }, [location]);
 
   const isErrorToast = toast?.type === "error";
 
   return (
     <div className="app">
+      {/* Toast */}
       {toast && (
         <div
-          style={{
-            position: "fixed",
-            top: NAVBAR_OFFSET_PX,
-            right: 16,
-            zIndex: 9999,
-            maxWidth: "min(520px, calc(100vw - 32px))",
-          }}
+          className={"toast-wrap"}
+          style={{ top: `calc(var(--navbar-height, 64px) + ${NAVBAR_OFFSET_PX}px)` }}
           onMouseEnter={toastPause}
           onMouseLeave={toastResume}
         >
-          {/* Toast card with close button inside */}
-          <div
-            className={"toast" + (toast.type === "error" ? " toast--error" : "")}
-            style={{
-              position: "relative",
-              width: "fit-content",
-              maxWidth: "min(520px, calc(100vw - 32px))",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              borderRadius: 14,
-              paddingLeft: 16,
-              paddingRight: 50,
-              paddingTop: 12,
-              paddingBottom: 12,
-            }}
-          >
-            <span style={{ whiteSpace: "normal", flex: 1 }}>{toast.message}</span>
+          <div className={"toast" + (isErrorToast ? " toast--error" : "")}>
+            <div className="toast-row">
+              <span className="toast-msg">{toast.message}</span>
 
-            {toast.onUndo && (
-              <button
-                type="button"
-                onClick={handleUndo}
-                style={{
-                  marginLeft: 8,
-                  padding: "7px 12px",
-                  borderRadius: 12,
-                  border: isErrorToast
-                    ? "1px solid rgba(255,255,255,0.35)"
-                    : "1px solid rgba(0,0,0,0.12)",
-                  background: isErrorToast ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.80)",
-                  color: isErrorToast ? "#fff" : "#111",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {toast.undoLabel || "Undo"}
-              </button>
-            )}
+              {toast.onUndo && (
+                <button
+                  type="button"
+                  className="toast-undo"
+                  onClick={async () => {
+                    try {
+                      await toast.onUndo();
+                      showToast(toast.undoneMessage);
+                    } catch {
+                      showToast("❌ Undo failed", "error");
+                    }
+                  }}
+                >
+                  {toast.undoLabel || "Undo"}
+                </button>
+              )}
+            </div>
 
-            {/* Close button on top-right of toast */}
+            {/* floating close (positioned via CSS) */}
             <button
               type="button"
-              aria-label="Dismiss notification"
-              onClick={() => {
-                clearToastTimer();
-                setToast(null);
-              }}
+              className="toast-close-float"
+              aria-label="Dismiss"
               title="Dismiss"
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                border: isErrorToast
-                  ? "1px solid rgba(255,255,255,0.3)"
-                  : "1px solid rgba(0,0,0,0.12)",
-                background: isErrorToast ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.90)",
-                color: isErrorToast ? "#fff" : "#111",
-                cursor: "pointer",
-                fontWeight: 1000,
-                fontSize: 24,
-                lineHeight: "1",
-                textAlign: "center",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = isErrorToast
-                  ? "rgba(0,0,0,0.45)"
-                  : "rgba(255,255,255,0.95)";
-                e.currentTarget.style.transform = "scale(1.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = isErrorToast
-                  ? "rgba(0,0,0,0.35)"
-                  : "rgba(255,255,255,0.90)";
-                e.currentTarget.style.transform = "scale(1)";
-              }}
+              onClick={() => setToast(null)}
             >
               ×
             </button>
@@ -561,6 +462,7 @@ export default function App() {
             Products
           </NavLink>
 
+          {/* Keep ONLY ONE cart link */}
           <NavLink
             to="/cart"
             className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
@@ -607,16 +509,6 @@ export default function App() {
               )}
 
               <NavLink
-                to="/cart"
-                className={({ isActive }) =>
-                  "nav-link" + (isActive ? " active" : "")
-                }
-              >
-                <FiShoppingCart className="nav-icon" />
-                Cart
-              </NavLink>
-
-              <NavLink
                 to="/my-orders"
                 className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
@@ -638,6 +530,9 @@ export default function App() {
         </nav>
       </header>
 
+      {/* Floating mini-cart (bottom-right) */}
+      <MiniCart />
+
       <main className="main">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -646,27 +541,21 @@ export default function App() {
             path="/products"
             element={<ProductsPage onAddToCart={handleAddToCart} user={user} showToast={showToast} />}
           />
+
+          <Route path="/cart" element={<CartPage showToast={showToast} />} />
+
+          <Route path="/checkout" element={<CheckoutPage showToast={showToast} />} />
+          <Route path="/checkout-success" element={<CheckoutSuccessPage />} />
+
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/my-orders"
-            element={<MyOrdersPage showToast={showToast} />}
-          />
 
-          <Route path="/cart" element={<CartPage showToast={showToast} />} />
+          <Route path="/my-orders" element={<MyOrdersPage showToast={showToast} />} />
 
-          <Route
-            path="/products/new"
-            element={<AddProductPage showToast={showToast} />}
-          />
-          <Route
-            path="/products/:id/edit"
-            element={<EditProductPage showToast={showToast} />}
-          />
+          <Route path="/products/new" element={<AddProductPage showToast={showToast} />} />
+          <Route path="/products/:id/edit" element={<EditProductPage showToast={showToast} />} />
+
           <Route path="/admin" element={<AdminPanelPage showToast={showToast} />} />
-          <Route path="/cart" element={<CartPage showToast={showToast} />} />
-          <Route path="/checkout" element={<CheckoutPage showToast={showToast} />} />
-          <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
         </Routes>
       </main>
 

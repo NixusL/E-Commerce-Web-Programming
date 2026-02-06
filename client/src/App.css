@@ -1861,3 +1861,239 @@ body {
     height: 200px;
   }
 }
+
+/* ---------- Mini Cart FAB + Drawer ---------- */
+.mini-cart-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1200;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  display: grid;
+  place-items: center;
+}
+
+.mini-cart-fab-icon {
+  font-size: 22px;
+}
+
+.mini-cart-fab-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid #fff;
+}
+
+.mini-cart-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1190;
+  background: rgba(0,0,0,0.35);
+}
+
+.mini-cart-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  z-index: 1195;
+  background: #ffffff;
+  box-shadow: -12px 0 28px rgba(0,0,0,0.18);
+  transform: translateX(110%);
+  transition: transform 220ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-cart-drawer--open {
+  transform: translateX(0);
+}
+
+.mini-cart-header {
+  padding: 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.mini-cart-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+}
+
+.mini-cart-pill {
+  margin-left: 6px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.mini-cart-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+}
+
+.mini-cart-close:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.mini-cart-items {
+  padding: 12px 14px;
+  overflow: auto;
+  flex: 1;
+}
+
+.mini-cart-item {
+  display: grid;
+  grid-template-columns: 56px 1fr 28px;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.mini-cart-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.04);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mini-cart-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mini-cart-emoji {
+  font-size: 22px;
+}
+
+.mini-cart-item-name {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.mini-cart-item-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.mini-cart-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mini-cart-qty button {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  cursor: pointer;
+}
+
+.mini-cart-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-size: 18px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.mini-cart-footer {
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding: 12px 14px;
+}
+
+.mini-cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mini-cart-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.mini-cart-actions .btn-secondary,
+.mini-cart-actions .btn-primary {
+  flex: 1;
+}
+
+.mini-cart-empty {
+  padding: 18px 14px;
+}
+
+/* ---------- Toast close floating button ---------- */
+.toast-wrap {
+  position: fixed;
+  right: 16px;
+  z-index: 1300;
+}
+
+.toast {
+  position: relative;
+}
+
+.toast-close-float {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+}
+
+.toast--error .toast-close-float {
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+}
