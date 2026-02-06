@@ -259,6 +259,69 @@ async function cancelMyOrder(req, res) {
   }
 }
 
+// POST /api/orders/bypass
+// Create an order directly from the user's cart and mark it as paid (testing/admin helper)
+async function createOrderBypass(req, res) {
+  try {
+    const userId = req.user._id;
+
+    // Load cart
+    const cart = await Cart.findOne({ user: userId }).populate('items.product');
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    // Build order items and update stock
+    let total = 0;
+    const orderItems = [];
+
+    for (const it of cart.items) {
+      const product = await Product.findById(it.product._id);
+      if (!product) continue;
+      const qty = Number(it.qty) || 1;
+      if (product.stock < qty) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+      }
+
+      total += product.price * qty;
+
+      orderItems.push({
+        product: product._id,
+        name: product.name,
+        price: product.price,
+        qty,
+        image: product.image,
+      });
+
+      product.stock -= qty;
+      product.inStock = product.stock > 0;
+      await product.save();
+    }
+
+    // Create order marked as paid
+    const order = new Order({
+      customer: userId,
+      items: orderItems,
+      total,
+      status: 'paid',
+      paymentStatus: 'paid',
+      refundStatus: 'none',
+      refundRequested: false,
+      shippingAddress: req.body.shippingAddress || {},
+    });
+
+    await order.save();
+
+    // Clear cart
+    await Cart.deleteOne({ user: userId });
+
+    res.json({ message: 'Order created (bypass)', orderId: order._id, order });
+  } catch (err) {
+    console.error('createOrderBypass error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 /* ======================================================
    REFUND FLOW (NEW)
 ====================================================== */
@@ -330,17 +393,18 @@ async function processRefund(req, res) {
       return res.status(400).json({ message: "Refund not approved" });
     }
 
-    if (!order.paymentIntentId) {
-      return res.status(400).json({ message: "No payment intent found" });
+    // If there's a Stripe payment intent, try to refund via Stripe.
+    // Otherwise treat as a manual/bypassed payment and mark refunded locally.
+    if (order.paymentIntentId && stripe) {
+      try {
+        await stripe.refunds.create({ payment_intent: order.paymentIntentId });
+      } catch (stripeErr) {
+        console.error("Stripe refund failed:", stripeErr);
+        return res.status(500).json({ message: "Stripe refund failed" });
+      }
     }
 
-    // Process refund with Stripe
-    if (stripe) {
-      await stripe.refunds.create({
-        payment_intent: order.paymentIntentId,
-      });
-    }
-
+    // Mark order refunded locally
     order.status = "refunded";
     order.paymentStatus = "refunded";
     order.refundStatus = "refunded";
@@ -394,6 +458,7 @@ module.exports = {
   updateOrderStatus,
   deleteOrder,
   cancelMyOrder,
+  createOrderBypass,
   requestRefund,
   getSellerPendingRefunds,
   sellerApproveRefund,

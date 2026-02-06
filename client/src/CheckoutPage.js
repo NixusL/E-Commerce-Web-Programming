@@ -109,6 +109,39 @@ export default function CheckoutPage({ showToast }) {
     }
   }
 
+  async function handleBypass() {
+    setProcessing(true);
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/orders/bypass`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ shippingAddress }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(`❌ ${data.message || 'Bypass failed'}`);
+        return;
+      }
+
+      showToast('✅ Order created (bypass)');
+      navigate('/checkout-success');
+    } catch (err) {
+      showToast('❌ Network error during bypass');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   if (loading) return <p>Loading checkout...</p>;
   if (error) return <p>Error: {error}</p>;
   if (!cart || cart.items.length === 0) return <p>No items in cart</p>;
@@ -205,13 +238,24 @@ export default function CheckoutPage({ showToast }) {
                 onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
               />
             </div>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={processing}
-            >
-              {processing ? "Processing..." : `Pay ${formatPrice(total)}`}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={processing}
+              >
+                {processing ? "Processing..." : `Pay ${formatPrice(total)}`}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleBypass}
+                disabled={processing}
+                title="Create order immediately without going through payment (testing only)"
+              >
+                {processing ? "Processing..." : 'Bypass Payment'}
+              </button>
+            </div>
           </form>
         </div>
       </div>

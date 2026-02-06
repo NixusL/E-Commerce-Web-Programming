@@ -14,6 +14,7 @@ const {
   cancelMyOrder,
   createCheckoutSession,
   confirmPayment,
+  createOrderBypass,
 
   // refunds
   requestRefund,
@@ -47,6 +48,7 @@ router.post(
 
 router.post("/checkout", auth, authorize("customer", "admin"), createCheckoutSession);
 router.post("/confirm-payment", auth, authorize("customer", "admin"), confirmPayment);
+router.post("/bypass", auth, authorize("customer", "admin"), createOrderBypass);
 
 // ===============================
 // SELLER

@@ -13,18 +13,19 @@ module.exports = async function auth(req, res, next) {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ ensure req.user has an id field
-    // decoded might be { id: ... } or { userId: ... } depending how you sign JWT
     const userId = decoded.id || decoded._id || decoded.userId;
     if (!userId) {
       return res.status(401).json({ message: "Invalid token payload (missing user id)" });
     }
 
-    // Option 1: attach minimal object (works with your controller)
-    req.user = { id: userId };
+    // Attach the full user (without password) so downstream middleware/controllers
+    // can read `req.user.role`, `req.user.isSeller`, etc. This fixes authorization
+    // checks that were failing because only `id` was present.
+    const user = await User.findById(userId).select("-passwordHash");
+    if (!user) return res.status(401).json({ message: "User not found" });
 
-    // Option 2 (optional): attach full user
-    // req.user = await User.findById(userId).select("-passwordHash");
+    // Convert mongoose doc to plain object to avoid surprises
+    req.user = user.toObject ? user.toObject() : user;
 
     next();
   } catch (err) {

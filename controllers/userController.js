@@ -1,5 +1,6 @@
 // controllers/userController.js
 const User = require("../models/User");
+const SellerRequest = require("../models/SellerRequest");
 
 function getUserId(req) {
     if (!req.user) return null;
@@ -37,6 +38,24 @@ exports.requestSellerUpgrade = async (req, res) => {
         user.sellerRequestStatus = "pending";
         user.sellerRequestedAt = new Date();
         await user.save();
+
+        // Create a SellerRequest document for admin review if one doesn't exist
+        try {
+            const existing = await SellerRequest.findOne({ user: user._id });
+            if (!existing) {
+                const created = await SellerRequest.create({ user: user._id, status: "pending" });
+                console.log('SellerRequest created for user', user._id.toString(), created._id.toString());
+            } else if (existing.status !== "pending") {
+                // If there is an existing non-pending request, keep it in sync
+                existing.status = "pending";
+                existing.reviewedAt = null;
+                existing.reviewedBy = null;
+                await existing.save();
+            }
+        } catch (e) {
+            console.error("Failed to create SellerRequest document:", e);
+            // Non-fatal: continue, user record is the source of truth for user-facing status
+        }
 
         return res.json({
             hasRequest: true,

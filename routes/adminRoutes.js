@@ -25,6 +25,7 @@ const {
   adminListSellerRequests,
   adminApproveSellerRequest,
   adminRejectSellerRequest,
+  adminBackfillSellerRequests,
   // Refunds
   adminListRefunds,
 } = require("../controllers/adminController");
@@ -48,6 +49,7 @@ router.post("/users/seller", adminCreateSellerUser);
 router.get("/seller-requests", adminListSellerRequests);
 router.post("/seller-requests/:id/approve", adminApproveSellerRequest);
 router.post("/seller-requests/:id/reject", adminRejectSellerRequest);
+router.post("/seller-requests/backfill", adminBackfillSellerRequests);
 
 /* =============== CATEGORIES =============== */
 router.get("/categories", adminListCategories);

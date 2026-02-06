@@ -243,9 +243,31 @@ async function adminListSellerRequests(req, res) {
     const requests = await SellerRequest.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
+    console.log('adminListSellerRequests: found', requests.length, 'requests');
     res.json(requests);
   } catch (error) {
     console.error('Error fetching seller requests:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// POST /api/admin/seller-requests/backfill
+async function adminBackfillSellerRequests(req, res) {
+  try {
+    // find users with pending status but no SellerRequest document
+    const pendingUsers = await User.find({ sellerRequestStatus: 'pending' }).select('_id name email');
+    let created = 0;
+    for (const u of pendingUsers) {
+      const exists = await SellerRequest.findOne({ user: u._id });
+      if (!exists) {
+        const doc = await SellerRequest.create({ user: u._id, status: 'pending' });
+        created++;
+        console.log('Backfilled SellerRequest for user', u._id.toString(), 'doc', doc._id.toString());
+      }
+    }
+    return res.json({ created, pendingUsers: pendingUsers.length });
+  } catch (error) {
+    console.error('Error backfilling seller requests:', error);
     res.status(500).json({ message: 'Server error' });
   }
 }
@@ -277,6 +299,20 @@ async function adminApproveSellerRequest(req, res) {
     sellerRequest.reviewedBy = req.user._id;
     await sellerRequest.save();
 
+    // Keep the User document in sync with the approval
+    try {
+      const u = await User.findById(sellerRequest.user._id);
+      if (u) {
+        u.role = 'seller';
+        u.isSeller = true;
+        u.sellerRequestStatus = 'approved';
+        u.sellerApprovedAt = new Date();
+        u.sellerApprovedBy = req.user._id;
+        await u.save();
+      }
+    } catch (e) {
+      console.error('Failed to update User after approving seller request:', e);
+    }
     res.json({ 
       message: 'Seller request approved', 
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
@@ -308,6 +344,18 @@ async function adminRejectSellerRequest(req, res) {
     sellerRequest.reviewedBy = req.user._id;
     await sellerRequest.save();
 
+    // Keep the User document in sync with the rejection
+    try {
+      const u = await User.findById(sellerRequest.user);
+      if (u) {
+        u.sellerRequestStatus = 'rejected';
+        u.sellerApprovedAt = null;
+        u.sellerApprovedBy = null;
+        await u.save();
+      }
+    } catch (e) {
+      console.error('Failed to update User after rejecting seller request:', e);
+    }
     res.json({ message: 'Seller request rejected', request: sellerRequest });
   } catch (error) {
     console.error('Error rejecting seller request:', error);
@@ -351,6 +399,7 @@ module.exports = {
   adminUpdateReportStatus,
   // Seller Requests
   adminListSellerRequests,
+  adminBackfillSellerRequests,
   adminApproveSellerRequest,
   adminRejectSellerRequest,
   // Refunds

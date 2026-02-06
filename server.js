@@ -10,6 +10,10 @@ const authRoutes = require("./routes/authRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const userRoutes = require("./routes/userRoutes");;
+// controller helper for explicit route fallback
+const { becomeSeller } = require("./controllers/userController");
+const auth = require("./middleware/auth");
 
 dotenv.config();
 connectDB();
@@ -35,6 +39,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/users", userRoutes);;
+
+// Fallback: ensure this endpoint is always handled even if router matching fails
+// (Some development setups may route POSTs differently; this guarantees the
+// /api/users/become-seller POST is handled by the controller with auth.)
+app.post("/api/users/become-seller", auth, becomeSeller);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -980,23 +980,31 @@ export default function AdminPanelPage() {
                   <div className="admin-cell">{r.user?.email || "N/A"}</div>
                   <div className="admin-cell">{formatDate(r.createdAt)}</div>
                   <div className="admin-cell">
-                    <button
-                      className="btn-secondary"
-                      type="button"
-                      disabled={loading}
-                      onClick={() => approveSellerRequest(r._id)}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="btn-danger-outline"
-                      type="button"
-                      disabled={loading}
-                      onClick={() => rejectSellerRequest(r._id)}
-                      style={{ marginLeft: "8px" }}
-                    >
-                      Reject
-                    </button>
+                    {String(r.status).toLowerCase() === 'pending' ? (
+                      <>
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => approveSellerRequest(r._id)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="btn-danger-outline"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => rejectSellerRequest(r._id)}
+                          style={{ marginLeft: "8px" }}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : (
+                      <span className={"admin-pill " + (r.status === 'approved' ? '' : 'admin-pill--in')}>
+                        {r.status}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

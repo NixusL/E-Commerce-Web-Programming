@@ -719,7 +719,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductsPage user={user} />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout" element={<CheckoutPage showToast={showToast} />} />
           <Route path="/checkout-success" element={<CheckoutSuccessPage />} />
 
           <Route path="/login" element={<LoginPage />} />
