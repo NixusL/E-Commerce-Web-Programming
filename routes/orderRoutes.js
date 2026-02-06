@@ -17,6 +17,7 @@ const {
 
   // refunds
   requestRefund,
+  getSellerPendingRefunds,
   sellerApproveRefund,
   processRefund,
 } = require("../controllers/orderController");
@@ -50,6 +51,14 @@ router.post("/confirm-payment", auth, authorize("customer", "admin"), confirmPay
 // ===============================
 // SELLER
 // ===============================
+
+// Seller views pending refund requests for their products
+router.get(
+  "/refunds/pending",
+  auth,
+  authorize("seller", "admin"),
+  getSellerPendingRefunds
+);
 
 // Seller approves refund (NEW)
 router.post(

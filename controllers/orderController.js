@@ -363,6 +363,28 @@ async function processRefund(req, res) {
   }
 }
 
+// SELLER: list pending refund requests for this seller
+async function getSellerPendingRefunds(req, res) {
+  try {
+    const orders = await Order.find({ refundStatus: "pending" })
+      .populate("customer", "name email")
+      .populate("items.product");
+
+    const sellerId = req.user._id.toString();
+
+    const mine = orders.filter((o) =>
+      (o.items || []).some(
+        (it) => it.product?.createdBy?.toString() === sellerId
+      )
+    );
+
+    res.json(mine);
+  } catch (err) {
+    console.error("getSellerPendingRefunds error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports = {
   buyNow,
   createCheckoutSession,
@@ -373,6 +395,7 @@ module.exports = {
   deleteOrder,
   cancelMyOrder,
   requestRefund,
+  getSellerPendingRefunds,
   sellerApproveRefund,
   processRefund,
 };

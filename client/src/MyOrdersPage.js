@@ -17,11 +17,14 @@ function statusStyle(status) {
   if (s === "cancelled" || s === "canceled") {
     return { border: "#ef4444", text: "#fca5a5", bg: "rgba(239, 68, 68, 0.12)" };
   }
-  if (s === "completed" || s === "delivered" || s === "shipped") {
+  if (s === "completed" || s === "delivered" || s === "shipped" || s === "paid") {
     return { border: "#22c55e", text: "#86efac", bg: "rgba(34, 197, 94, 0.12)" };
   }
   if (s === "processing") {
     return { border: "#60a5fa", text: "#bfdbfe", bg: "rgba(96, 165, 250, 0.12)" };
+  }
+  if (s === "refunded") {
+    return { border: "#22c55e", text: "#86efac", bg: "rgba(34, 197, 94, 0.12)" };
   }
 
   // fallback
@@ -35,10 +38,13 @@ function refundStyle(refundStatus) {
   if (s === "pending") {
     return { border: "#f59e0b", text: "#fbbf24", bg: "rgba(245, 158, 11, 0.12)" };
   }
+  if (s === "approved") {
+    return { border: "#60a5fa", text: "#bfdbfe", bg: "rgba(96, 165, 250, 0.12)" };
+  }
   if (s === "refunded") {
     return { border: "#22c55e", text: "#86efac", bg: "rgba(34, 197, 94, 0.12)" };
   }
-  if (s === "denied") {
+  if (s === "denied" || s === "rejected") {
     return { border: "#ef4444", text: "#fca5a5", bg: "rgba(239, 68, 68, 0.12)" };
   }
 
@@ -109,7 +115,6 @@ export default function MyOrdersPage({ showToast }) {
         return;
       }
 
-      // update local state
       setOrders((prev) =>
         prev.map((o) => (o._id === orderId ? { ...o, status: "cancelled" } : o))
       );
@@ -129,7 +134,7 @@ export default function MyOrdersPage({ showToast }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${orderId}/request-refund`, {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund/request`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -142,14 +147,13 @@ export default function MyOrdersPage({ showToast }) {
         return;
       }
 
-      // update local state to show refund is pending
       setOrders((prev) =>
         prev.map((o) =>
-          o._id === orderId ? { ...o, refundStatus: "pending" } : o
+          o._id === orderId ? { ...o, refundStatus: "pending", refundRequested: true } : o
         )
       );
 
-      if (showToast) showToast("↩️ Refund requested - awaiting approval");
+      if (showToast) showToast("↩️ Refund requested - awaiting seller approval");
     } catch {
       if (showToast) showToast("❌ Network error requesting refund");
       else alert("Network error requesting refund.");
@@ -169,9 +173,11 @@ export default function MyOrdersPage({ showToast }) {
         <div style={{ display: "grid", gap: "1rem" }}>
           {orders.map((o) => {
             const image = o.items?.[0]?.image || "";
-            const cancellable = ["pending", "processing"].includes(o.status);
+            const cancellable = ["pending", "processing"].includes(String(o.status || "").toLowerCase());
+
             const canRequestRefund =
-              o.refundStatus === "none" && ["completed", "paid"].includes(o.status);
+              (o.refundStatus === "none" || !o.refundStatus) &&
+              ["completed", "paid"].includes(String(o.status || "").toLowerCase());
 
             const st = statusStyle(o.status);
             const refundSt = refundStyle(o.refundStatus || "none");
@@ -186,7 +192,6 @@ export default function MyOrdersPage({ showToast }) {
                   position: "relative",
                 }}
               >
-                {/* image top-left */}
                 <div
                   style={{
                     position: "absolute",
@@ -222,7 +227,6 @@ export default function MyOrdersPage({ showToast }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  {/* status pill */}
                   <span
                     style={{
                       display: "inline-flex",
@@ -239,7 +243,6 @@ export default function MyOrdersPage({ showToast }) {
                     {o.status}
                   </span>
 
-                  {/* refund status pill (if not "none") */}
                   {o.refundStatus && o.refundStatus !== "none" && (
                     <span
                       style={{
@@ -274,14 +277,13 @@ export default function MyOrdersPage({ showToast }) {
                 </div>
 
                 <ul style={{ marginTop: "0.75rem", paddingLeft: "2.2rem" }}>
-                  {o.items.map((it, idx) => (
+                  {(o.items || []).map((it, idx) => (
                     <li key={idx}>
                       {it.name} × {it.qty} — ${Number(it.price).toFixed(2)}
                     </li>
                   ))}
                 </ul>
 
-                {/* Action buttons */}
                 <div
                   style={{
                     display: "flex",
@@ -291,7 +293,6 @@ export default function MyOrdersPage({ showToast }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  {/* Cancel Order button */}
                   {cancellable && (
                     <button
                       type="button"
@@ -309,7 +310,6 @@ export default function MyOrdersPage({ showToast }) {
                     </button>
                   )}
 
-                  {/* Request Refund button */}
                   {canRequestRefund && (
                     <button
                       type="button"

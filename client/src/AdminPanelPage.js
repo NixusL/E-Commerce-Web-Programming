@@ -74,7 +74,6 @@ export default function AdminPanelPage() {
   }
 
   useEffect(() => {
-    // ✅ load summary counts immediately
     loadProducts();
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -254,7 +253,7 @@ export default function AdminPanelPage() {
   function toggleAll(checked) {
     setSelected(() => {
       if (!checked) return new Set();
-      return new Set(products.map((p) => p._id)); // ✅ all products, not just filtered
+      return new Set(products.map((p) => p._id));
     });
   }
 
@@ -504,7 +503,29 @@ export default function AdminPanelPage() {
 
   /* =============== REFUND ACTIONS =============== */
 
-  async function approveRefund(orderId) {
+  // Step 2: approve refund (seller/admin route)
+  async function approveRefundStep2(orderId) {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund/seller-approve`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Failed to approve refund");
+      pushToast({ type: "success", message: "✅ Refund approved (step 2)", canUndo: false });
+      await loadRefundRequests();
+    } catch (e) {
+      pushToast({ type: "error", message: `❌ ${e.message || "Approve failed"}`, canUndo: false });
+      setError(e.message || "Approve failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Step 3: process refund (admin route)
+  async function processRefundStep3(orderId) {
     try {
       setLoading(true);
       setError("");
@@ -513,8 +534,8 @@ export default function AdminPanelPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Failed to approve refund");
-      pushToast({ type: "success", message: "💸 Refund granted", canUndo: false });
+      if (!res.ok) throw new Error(data?.message || "Failed to process refund");
+      pushToast({ type: "success", message: "💸 Refund processed (step 3)", canUndo: false });
       await loadRefundRequests();
     } catch (e) {
       pushToast({ type: "error", message: `❌ ${e.message || "Refund failed"}`, canUndo: false });
@@ -988,7 +1009,7 @@ export default function AdminPanelPage() {
         <div className="admin-card">
           {loading && <div className="admin-empty">Loading...</div>}
           {!loading && refundRequests.length === 0 && (
-            <div className="admin-empty">No pending refund requests.</div>
+            <div className="admin-empty">No refund requests found.</div>
           )}
           {!loading && refundRequests.length > 0 && (
             <div className="admin-table">
@@ -996,31 +1017,60 @@ export default function AdminPanelPage() {
                 <div className="admin-cell">Order ID</div>
                 <div className="admin-cell">Customer</div>
                 <div className="admin-cell">Amount</div>
-                <div className="admin-cell">Status</div>
+                <div className="admin-cell">Refund Status</div>
                 <div className="admin-cell">Created</div>
                 <div className="admin-cell">Actions</div>
               </div>
               {refundRequests.map((o) => {
                 const customerName =
                   typeof o.customer === "object" ? o.customer?.name : "Unknown";
+                const rs = String(o.refundStatus || "none").toLowerCase();
+
                 return (
                   <div className="admin-row" key={o._id}>
                     <div className="admin-cell">{o._id}</div>
                     <div className="admin-cell">{customerName || "Unknown"}</div>
                     <div className="admin-cell">{formatPrice(o.total)}</div>
                     <div className="admin-cell">
-                      <span className="admin-pill admin-pill--warn">{o.status}</span>
+                      <span className={"admin-pill " + (rs === "pending" ? "admin-pill--warn" : rs === "approved" ? "" : "admin-pill--in")}>
+                        {o.refundStatus}
+                      </span>
                     </div>
                     <div className="admin-cell">{formatDate(o.createdAt)}</div>
                     <div className="admin-cell">
-                      <button
-                        className="btn-secondary"
-                        type="button"
-                        disabled={loading}
-                        onClick={() => approveRefund(o._id)}
-                      >
-                        Approve Refund
-                      </button>
+                      {rs === "pending" && (
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => approveRefundStep2(o._id)}
+                        >
+                          Approve (Step 2)
+                        </button>
+                      )}
+
+                      {rs === "approved" && (
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => processRefundStep3(o._id)}
+                        >
+                          Process Refund (Step 3)
+                        </button>
+                      )}
+
+                      {rs === "refunded" && (
+                        <button className="btn-secondary btn-disabled" type="button" disabled>
+                          Refunded
+                        </button>
+                      )}
+
+                      {rs === "none" && (
+                        <button className="btn-secondary btn-disabled" type="button" disabled>
+                          No action
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

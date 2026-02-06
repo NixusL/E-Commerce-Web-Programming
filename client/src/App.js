@@ -20,6 +20,7 @@ import CartPage from "./CartPage";
 import CheckoutPage from "./CheckoutPage";
 import CheckoutSuccessPage from "./CheckoutSuccessPage";
 import SellerRequestPage from "./SellerRequestPage";
+import SellerRefundsPage from "./SellerRefundsPage";
 
 import MiniCart from "./MiniCart";
 
@@ -98,27 +99,22 @@ function ToastItem({
   }
 
   function handleToastClick() {
-    // only cart toasts open minicart, and only when NOT on /cart
     if (!isCartToast) return;
     if (isCartPage) return;
 
-    // tap feedback
     setPressed(true);
     window.setTimeout(() => setPressed(false), 160);
 
-    // ✅ close the toast immediately so it won't cover the minicart
     clearTimer();
     setExiting(true);
     window.setTimeout(() => onClose(toast.id), 140);
 
-    // open minicart after a tiny delay (still feels instant)
     window.setTimeout(() => {
       onCartToastClick?.();
     }, 160);
   }
 
   function handleUndoClick(e) {
-    // ✅ Undo should NOT open MiniCart
     e.stopPropagation();
     onUndo(toast.id);
   }
@@ -180,6 +176,8 @@ function ProductsPage({ user }) {
   const { addToCart } = useCart();
 
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -217,10 +215,19 @@ function ProductsPage({ user }) {
     fetchData();
   }, []);
 
+  const q = searchQuery.trim().toLowerCase();
+
   const filteredProducts =
-    selectedCategory === "All"
+    (selectedCategory === "All"
       ? products
-      : products.filter((p) => p.category?.name === selectedCategory);
+      : products.filter((p) => p.category?.name === selectedCategory)
+    ).filter((p) => {
+      if (!q) return true;
+      const name = String(p.name || "").toLowerCase();
+      const desc = String(p.description || "").toLowerCase();
+      const cat = String(p.category?.name || "").toLowerCase();
+      return name.includes(q) || desc.includes(q) || cat.includes(q);
+    });
 
   async function handleAddToCart(product) {
     try {
@@ -259,6 +266,17 @@ function ProductsPage({ user }) {
 
   return (
     <>
+      {/* ✅ Search bar */}
+      <div style={{ marginBottom: "0.9rem", display: "flex", justifyContent: "center" }}>
+        <input
+          className="admin-search"
+          style={{ maxWidth: 520 }}
+          placeholder="Search products (name, category, description)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       <section className="categories">
         <button
           key="All"
@@ -312,6 +330,8 @@ function ProductsPage({ user }) {
                 ? " product-card--mine"
                 : "");
 
+            const inStock = !!product.inStock;
+
             return (
               <article
                 key={product._id}
@@ -363,6 +383,19 @@ function ProductsPage({ user }) {
                 <p className="product-category">
                   {product.category?.name || "Uncategorized"}
                 </p>
+
+                {/* ✅ In stock / Out of stock restored */}
+                <p
+                  style={{
+                    marginTop: "-0.15rem",
+                    marginBottom: "0.35rem",
+                    fontWeight: 700,
+                    color: inStock ? "#16a34a" : "#ef4444",
+                  }}
+                >
+                  {inStock ? "In stock" : "Out of stock"}
+                </p>
+
                 <p className="product-desc">{product.description}</p>
                 <p className="product-price">{formatPrice(product.price)}</p>
 
@@ -383,9 +416,11 @@ function ProductsPage({ user }) {
                     Add to Cart
                   </button>
 
+                  {/* ✅ Report text darker */}
                   <button
                     className="btn-danger-outline"
                     type="button"
+                    style={{ color: "#111827", fontWeight: 700 }}
                     onClick={() => navigate(`/report/${product._id}`)}
                   >
                     Report
@@ -414,7 +449,6 @@ export default function App() {
 
   const isCartPage = location.pathname.startsWith("/cart");
 
-  // open MiniCart by "clicking" the FAB
   const openMiniCart = () => {
     const fab = document.querySelector(".mini-cart-fab");
     if (fab) fab.click();
@@ -426,7 +460,7 @@ export default function App() {
 
     const toast = {
       id,
-      intent: t.intent || "default", // "cart" => clickable opens mini cart
+      intent: t.intent || "default",
       type: t.type || "success",
       message: t.message || "",
       canUndo: !!t.canUndo,
@@ -455,7 +489,6 @@ export default function App() {
         t.onUndo?.();
       } catch {}
 
-      // keep intent so "↩️ Undone" toast is clickable
       return prev.map((x) =>
         x.id === id
           ? {
@@ -470,7 +503,6 @@ export default function App() {
     });
   };
 
-  // ✅ GLOBAL TOAST BUS: any file can dispatch "toast:push"
   useEffect(() => {
     function onToastPush(e) {
       if (!e?.detail) return;
@@ -481,7 +513,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // cart undo hooks
   useEffect(() => {
     function onUndoAdd(e) {
       // hook up to your real removeFromCart if you have it
@@ -550,6 +581,12 @@ export default function App() {
 
   const roleEmoji = user?.role === "admin" ? "👑" : "";
 
+  // ✅ helper to pass to MyOrdersPage (expects showToast(message))
+  const showToast = (message) => {
+    const isErr = String(message || "").trim().startsWith("❌");
+    pushToast({ type: isErr ? "error" : "success", message, canUndo: false });
+  };
+
   return (
     <div className="app">
       {toasts.length > 0 && (
@@ -604,13 +641,6 @@ export default function App() {
           {!user ? (
             <>
               <NavLink
-                to="/become-seller"
-                className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
-              >
-                Become Seller
-              </NavLink>
-
-              <NavLink
                 to="/login"
                 className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
@@ -628,6 +658,26 @@ export default function App() {
             </>
           ) : (
             <>
+              {/* ✅ Become Seller link ONLY when logged in as customer */}
+              {user?.role === "customer" && (
+                <NavLink
+                  to="/become-seller"
+                  className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                >
+                  Become Seller
+                </NavLink>
+              )}
+
+              {/* ✅ Seller refunds link for seller/admin */}
+              {(user?.role === "seller" || user?.role === "admin") && (
+                <NavLink
+                  to="/seller-refunds"
+                  className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                >
+                  Refund Requests
+                </NavLink>
+              )}
+
               {(user?.role === "seller" || user?.role === "admin") && (
                 <NavLink
                   to="/products/new"
@@ -674,9 +724,11 @@ export default function App() {
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/become-seller" element={<SellerRequestPage />} />
 
-          <Route path="/my-orders" element={<MyOrdersPage />} />
+          <Route path="/become-seller" element={<SellerRequestPage />} />
+          <Route path="/seller-refunds" element={<SellerRefundsPage />} />
+
+          <Route path="/my-orders" element={<MyOrdersPage showToast={showToast} />} />
 
           <Route path="/products/new" element={<AddProductPage />} />
           <Route path="/products/:id/edit" element={<EditProductPage />} />
