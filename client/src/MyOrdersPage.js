@@ -28,6 +28,24 @@ function statusStyle(status) {
   return { border: "#6b7280", text: "#d1d5db", bg: "rgba(107, 114, 128, 0.12)" };
 }
 
+// refund status -> style
+function refundStyle(refundStatus) {
+  const s = String(refundStatus || "").toLowerCase();
+
+  if (s === "pending") {
+    return { border: "#f59e0b", text: "#fbbf24", bg: "rgba(245, 158, 11, 0.12)" };
+  }
+  if (s === "refunded") {
+    return { border: "#22c55e", text: "#86efac", bg: "rgba(34, 197, 94, 0.12)" };
+  }
+  if (s === "denied") {
+    return { border: "#ef4444", text: "#fca5a5", bg: "rgba(239, 68, 68, 0.12)" };
+  }
+
+  // fallback / "none"
+  return { border: "#6b7280", text: "#d1d5db", bg: "rgba(107, 114, 128, 0.12)" };
+}
+
 export default function MyOrdersPage({ showToast }) {
   const navigate = useNavigate();
 
@@ -103,6 +121,41 @@ export default function MyOrdersPage({ showToast }) {
     }
   }
 
+  async function requestRefund(orderId) {
+    const token = getToken();
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/request-refund`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (showToast) showToast(`❌ ${data?.message || "Failed to request refund"}`);
+        else alert(data?.message || "Failed to request refund.");
+        return;
+      }
+
+      // update local state to show refund is pending
+      setOrders((prev) =>
+        prev.map((o) =>
+          o._id === orderId ? { ...o, refundStatus: "pending" } : o
+        )
+      );
+
+      if (showToast) showToast("↩️ Refund requested - awaiting approval");
+    } catch {
+      if (showToast) showToast("❌ Network error requesting refund");
+      else alert("Network error requesting refund.");
+    }
+  }
+
   if (loading) return <p className="no-products">Loading orders...</p>;
   if (error) return <p className="no-products">Error: {error}</p>;
 
@@ -117,8 +170,11 @@ export default function MyOrdersPage({ showToast }) {
           {orders.map((o) => {
             const image = o.items?.[0]?.image || "";
             const cancellable = ["pending", "processing"].includes(o.status);
+            const canRequestRefund =
+              o.refundStatus === "none" && ["completed", "paid"].includes(o.status);
 
             const st = statusStyle(o.status);
+            const refundSt = refundStyle(o.refundStatus || "none");
 
             return (
               <div
@@ -141,7 +197,16 @@ export default function MyOrdersPage({ showToast }) {
                   aria-label="product-image"
                 >
                   {image ? (
-                    <img src={`http://localhost:5000${image}`} alt="Product" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                    <img
+                      src={`http://localhost:5000${image}`}
+                      alt="Product"
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                      }}
+                    />
                   ) : (
                     "🛒"
                   )}
@@ -154,6 +219,7 @@ export default function MyOrdersPage({ showToast }) {
                     paddingLeft: "2.2rem",
                     alignItems: "center",
                     gap: "0.75rem",
+                    flexWrap: "wrap",
                   }}
                 >
                   {/* status pill */}
@@ -172,6 +238,25 @@ export default function MyOrdersPage({ showToast }) {
                   >
                     {o.status}
                   </span>
+
+                  {/* refund status pill (if not "none") */}
+                  {o.refundStatus && o.refundStatus !== "none" && (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "0.25rem 0.7rem",
+                        borderRadius: "999px",
+                        border: `1px solid ${refundSt.border}`,
+                        color: refundSt.text,
+                        background: refundSt.bg,
+                        fontWeight: 600,
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      Refund: {o.refundStatus}
+                    </span>
+                  )}
 
                   <span style={{ marginLeft: "auto" }}>
                     Total: ${Number(o.total).toFixed(2)}
@@ -196,14 +281,22 @@ export default function MyOrdersPage({ showToast }) {
                   ))}
                 </ul>
 
-                {/* Centered cancel button */}
-                {cancellable && (
-                  <div style={{ display: "flex", justifyContent: "center" }}>
+                {/* Action buttons */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: "0.75rem",
+                    marginTop: "0.75rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {/* Cancel Order button */}
+                  {cancellable && (
                     <button
                       type="button"
                       onClick={() => cancelOrder(o._id)}
                       style={{
-                        marginTop: "0.75rem",
                         borderRadius: "999px",
                         padding: "0.5rem 1.1rem",
                         border: "1px solid #ef4444",
@@ -214,8 +307,26 @@ export default function MyOrdersPage({ showToast }) {
                     >
                       Cancel Order
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  {/* Request Refund button */}
+                  {canRequestRefund && (
+                    <button
+                      type="button"
+                      onClick={() => requestRefund(o._id)}
+                      style={{
+                        borderRadius: "999px",
+                        padding: "0.5rem 1.1rem",
+                        border: "1px solid #60a5fa",
+                        background: "transparent",
+                        color: "#bfdbfe",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Request Refund
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}

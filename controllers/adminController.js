@@ -4,6 +4,7 @@ const Category = require('../models/Category');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const Report = require('../models/Report');
+const SellerRequest = require('../models/SellerRequest');
 const bcrypt = require('bcryptjs');
 
 // GET /api/admin/products
@@ -234,17 +235,124 @@ async function adminUpdateReportStatus(req, res) {
   }
 }
 
+/* =============== SELLER REQUESTS (NEW) =============== */
+
+// GET /api/admin/seller-requests
+async function adminListSellerRequests(req, res) {
+  try {
+    const requests = await SellerRequest.find()
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching seller requests:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// POST /api/admin/seller-requests/:id/approve
+async function adminApproveSellerRequest(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const sellerRequest = await SellerRequest.findById(id).populate('user');
+    if (!sellerRequest) {
+      return res.status(404).json({ message: 'Seller request not found' });
+    }
+
+    if (sellerRequest.status !== 'pending') {
+      return res.status(400).json({ message: 'Request already processed' });
+    }
+
+    // Update user role to seller
+    const user = await User.findByIdAndUpdate(
+      sellerRequest.user._id,
+      { role: 'seller' },
+      { new: true }
+    );
+
+    // Mark request as approved
+    sellerRequest.status = 'approved';
+    sellerRequest.reviewedAt = new Date();
+    sellerRequest.reviewedBy = req.user._id;
+    await sellerRequest.save();
+
+    res.json({ 
+      message: 'Seller request approved', 
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      request: sellerRequest 
+    });
+  } catch (error) {
+    console.error('Error approving seller request:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// POST /api/admin/seller-requests/:id/reject
+async function adminRejectSellerRequest(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const sellerRequest = await SellerRequest.findById(id);
+    if (!sellerRequest) {
+      return res.status(404).json({ message: 'Seller request not found' });
+    }
+
+    if (sellerRequest.status !== 'pending') {
+      return res.status(400).json({ message: 'Request already processed' });
+    }
+
+    // Mark request as rejected
+    sellerRequest.status = 'rejected';
+    sellerRequest.reviewedAt = new Date();
+    sellerRequest.reviewedBy = req.user._id;
+    await sellerRequest.save();
+
+    res.json({ message: 'Seller request rejected', request: sellerRequest });
+  } catch (error) {
+    console.error('Error rejecting seller request:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+/* =============== REFUND REQUESTS (NEW) =============== */
+
+// GET /api/admin/refunds
+async function adminListRefunds(req, res) {
+  try {
+    const refunds = await Order.find({ refundStatus: { $ne: 'none' } })
+      .populate('customer', 'name email')
+      .populate('items.product', 'name')
+      .sort({ createdAt: -1 });
+    res.json(refunds);
+  } catch (error) {
+    console.error('Error fetching refunds:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 module.exports = {
+  // Products
   adminListProducts,
   adminDeleteProductsMany,
+  // Orders
   adminListOrders,
   adminUpdateOrderStatus,
   adminDeleteOrder,
+  // Users
   adminCreateAdminUser,
   adminCreateSellerUser,
+  // Categories
   adminListCategories,
   adminCreateCategory,
   adminDeleteCategory,
+  // Reports
   adminListReports,
-  adminUpdateReportStatus
+  adminUpdateReportStatus,
+  // Seller Requests
+  adminListSellerRequests,
+  adminApproveSellerRequest,
+  adminRejectSellerRequest,
+  // Refunds
+  adminListRefunds,
 };

@@ -19,6 +19,7 @@ import ReportProductPage from "./ReportProductPage";
 import CartPage from "./CartPage";
 import CheckoutPage from "./CheckoutPage";
 import CheckoutSuccessPage from "./CheckoutSuccessPage";
+import SellerRequestPage from "./SellerRequestPage";
 
 import MiniCart from "./MiniCart";
 
@@ -603,6 +604,13 @@ export default function App() {
           {!user ? (
             <>
               <NavLink
+                to="/become-seller"
+                className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+              >
+                Become Seller
+              </NavLink>
+
+              <NavLink
                 to="/login"
                 className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
               >
@@ -666,6 +674,7 @@ export default function App() {
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/become-seller" element={<SellerRequestPage />} />
 
           <Route path="/my-orders" element={<MyOrdersPage />} />
 

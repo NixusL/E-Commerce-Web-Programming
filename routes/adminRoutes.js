@@ -1,47 +1,64 @@
 // routes/adminRoutes.js
 const express = require("express");
 const router = express.Router();
-
 const auth = require("../middleware/auth");
 const requireAdmin = require("../middleware/requireAdmin");
-
 const {
+  // Products
   adminListProducts,
   adminDeleteProductsMany,
+  // Orders
   adminListOrders,
   adminUpdateOrderStatus,
   adminDeleteOrder,
+  // Users
   adminCreateAdminUser,
   adminCreateSellerUser,
+  // Categories
   adminListCategories,
   adminCreateCategory,
   adminDeleteCategory,
+  // Reports
   adminListReports,
   adminUpdateReportStatus,
+  // Seller Requests
+  adminListSellerRequests,
+  adminApproveSellerRequest,
+  adminRejectSellerRequest,
+  // Refunds
+  adminListRefunds,
 } = require("../controllers/adminController");
 
 router.use(auth, requireAdmin);
 
-// Products
+/* =============== PRODUCTS =============== */
 router.get("/products", adminListProducts);
 router.post("/products/delete-many", adminDeleteProductsMany);
 
-// Orders
+/* =============== ORDERS =============== */
 router.get("/orders", adminListOrders);
 router.put("/orders/:id/status", adminUpdateOrderStatus);
 router.delete("/orders/:id", adminDeleteOrder);
 
-// Users
+/* =============== USERS =============== */
 router.post("/users/admin", adminCreateAdminUser);
 router.post("/users/seller", adminCreateSellerUser);
 
-// Categories
+/* =============== SELLER ROLE REQUESTS =============== */
+router.get("/seller-requests", adminListSellerRequests);
+router.post("/seller-requests/:id/approve", adminApproveSellerRequest);
+router.post("/seller-requests/:id/reject", adminRejectSellerRequest);
+
+/* =============== CATEGORIES =============== */
 router.get("/categories", adminListCategories);
 router.post("/categories", adminCreateCategory);
 router.delete("/categories/:id", adminDeleteCategory);
 
-// Reports
+/* =============== REPORTS =============== */
 router.get("/reports", adminListReports);
 router.put("/reports/:id/status", adminUpdateReportStatus);
+
+/* =============== REFUNDS =============== */
+router.get("/refunds", adminListRefunds);
 
 module.exports = router;

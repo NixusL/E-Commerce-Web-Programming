@@ -19,8 +19,6 @@ const orderSchema = new mongoose.Schema(
         name: { type: String, required: true },
         price: { type: Number, required: true, min: 0 },
         qty: { type: Number, default: 1, min: 1 },
-
-        // ✅ NEW: product image snapshot
         image: { type: String, default: "" },
       },
     ],
@@ -29,7 +27,16 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "processing", "paid", "shipped", "delivered", "completed", "cancelled", "refunded"],
+      enum: [
+        "pending",
+        "processing",
+        "paid",
+        "shipped",
+        "delivered",
+        "completed",
+        "cancelled",
+        "refunded",
+      ],
       default: "pending",
     },
 
@@ -39,6 +46,21 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
+    },
+
+    /* ===============================
+       REFUND FLOW STATE (NEW)
+    =============================== */
+
+    refundRequested: {
+      type: Boolean,
+      default: false,
+    },
+
+    refundStatus: {
+      type: String,
+      enum: ["none", "requested", "seller_approved", "refunded"],
+      default: "none",
     },
 
     shippingAddress: {
