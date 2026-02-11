@@ -57,6 +57,20 @@ async function getAllProducts(req, res) {
   }
 }
 
+// GET /api/products/my
+async function getMyProducts(req, res) {
+  try {
+    const products = await Product.find({ createdBy: req.user._id })
+      .populate("category", "name")
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching my products:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 // GET /api/products/:id
 async function getProductById(req, res) {
   try {
@@ -78,22 +92,38 @@ async function getProductById(req, res) {
 // customer/admin can create products (sell)
 async function createProduct(req, res) {
   try {
+    console.log('createProduct called with req.body:', req.body);
+    console.log('req.user:', req.user);
+    console.log('req.file:', req.file);
+
     const { name, price, category, stock, description } = req.body;
 
     if (!name || price == null) {
+      console.log('Validation failed: name or price missing');
       return res.status(400).json({ message: 'Name and price are required' });
     }
 
+    const priceNum = Number(price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      return res.status(400).json({ message: 'Invalid price' });
+    }
+
     const stockNum = stock ? Number(stock) : 0;
+    if (isNaN(stockNum) || stockNum < 0) {
+      return res.status(400).json({ message: 'Invalid stock' });
+    }
 
     // Find or create category
     let categoryDoc;
     if (category && category.trim()) {
+      console.log('Finding category:', category.trim());
       categoryDoc = await Category.findOne({ name: category.trim() });
       if (!categoryDoc) {
+        console.log('Creating new category:', category.trim());
         categoryDoc = await Category.create({ name: category.trim() });
       }
     } else {
+      console.log('Using default category');
       // Default to 'Uncategorized'
       categoryDoc = await Category.findOne({ name: 'Uncategorized' });
       if (!categoryDoc) {
@@ -101,9 +131,11 @@ async function createProduct(req, res) {
       }
     }
 
+    console.log('Category doc:', categoryDoc);
+
     const product = new Product({
       name,
-      price: Number(price),
+      price: priceNum,
       category: categoryDoc._id,
       description: description || '',
       image: req.file ? `/uploads/${req.file.filename}` : '',
@@ -112,7 +144,11 @@ async function createProduct(req, res) {
       createdBy: req.user?._id, // set ownership
     });
 
+    console.log('Product to save:', product);
+
     const savedProduct = await product.save();
+    console.log('Product saved:', savedProduct);
+
     const populatedProduct = await Product.findById(savedProduct._id)
       .populate('category', 'name')
       .populate('createdBy', 'name email');
@@ -225,6 +261,7 @@ async function deleteProduct(req, res) {
 module.exports = {
   getCategories,
   getAllProducts,
+  getMyProducts,
   getProductById,
   createProduct,
   updateProduct,

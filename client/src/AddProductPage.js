@@ -7,6 +7,17 @@ function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
+function getUserRole() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role;
+  } catch {
+    return null;
+  }
+}
+
 function pushToast(detail) {
   window.dispatchEvent(new CustomEvent("toast:push", { detail }));
 }
@@ -14,6 +25,7 @@ function pushToast(detail) {
 export default function AddProductPage() {
   const navigate = useNavigate();
   const token = getToken();
+  const userRole = getUserRole();
 
   const [form, setForm] = useState({
     name: "",
@@ -56,6 +68,11 @@ export default function AddProductPage() {
     return null;
   }
 
+  if (userRole !== "seller" && userRole !== "admin") {
+    navigate("/");
+    return null;
+  }
+
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
   }
@@ -63,6 +80,16 @@ export default function AddProductPage() {
   async function onSubmit(e) {
     e.preventDefault();
     setError("");
+
+    if (userRole !== "seller" && userRole !== "admin") {
+      setError("Only sellers and admins can create products");
+      pushToast({
+        type: "error",
+        message: "❌ Only sellers and admins can create products",
+        canUndo: false,
+      });
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -109,11 +136,12 @@ export default function AddProductPage() {
   }
 
   return (
-    <div className="form-card">
-      <h1 className="form-title">List a Product</h1>
-      <p className="form-subtitle">Create a product you want to sell.</p>
+    <div className="add-product-container">
+      <div className="form-card">
+        <h1 className="form-title">List a Product</h1>
+        <p className="form-subtitle">Create a product you want to sell.</p>
 
-      <form className="auth-form form-grid" onSubmit={onSubmit}>
+        <form className="auth-form form-grid" onSubmit={onSubmit}>
         <label className="auth-label">
           Title
           <input
@@ -206,6 +234,7 @@ export default function AddProductPage() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
