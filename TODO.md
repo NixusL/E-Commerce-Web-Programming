@@ -1,3 +1,2 @@
-- [x] Add multer error handling in routes/productRoutes.js for POST /api/products
-- [x] Add validation for price and stock in controllers/productController.js createProduct function
-- [ ] Test creating a product to ensure it works
+- [ ] Update shipment dates in Step 2 to future dates (2024)
+- [ ] Add product summary with images in Step 1

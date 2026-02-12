@@ -4,23 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { FiMapPin, FiTruck, FiCreditCard, FiEdit2, FiX, FiPlus, FiChevronDown } from "react-icons/fi";
 import { useCart } from "./cart/CartContext";
 
-// Mock Data for "Front-end only" mode
-const ADDRESSES = [
-  {
-    id: "home",
-    type: "HOME",
-    address: "2118 Thornridge Cir.",
-    city: "Syracuse, Connecticut 35624",
-    phone: "(209) 555-0104"
-  },
-  {
-    id: "office",
-    type: "OFFICE",
-    address: "2715 Ash Dr. San Jose",
-    city: "South Dakota 83475",
-    phone: "(704) 555-0127"
-  }
-];
+const API_BASE = "http://localhost:5000";
+
+// Addresses will be managed dynamically
 
 // Mock Items for Summary (if cart is empty during dev)
 const MOCK_ITEMS = [
@@ -38,19 +24,105 @@ export default function CheckoutPage() {
   const displayTotal = items.length > 0 ? cartTotal : 2347;
 
   const [step, setStep] = useState(1); // 1 = Address, 2 = Shipping, 3 = Payment
-  const [selectedAddress, setSelectedAddress] = useState("home");
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [shippingMethod, setShippingMethod] = useState("free");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+
+  // Address Form Modal State
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [addressForm, setAddressForm] = useState({
+    type: "HOME",
+    address: "",
+    city: "",
+    phone: ""
+  });
 
   // Step 3 Payment Form State
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expDate, setExpDate] = useState("");
   const [cvv, setCvv] = useState("");
+  const [cardNameError, setCardNameError] = useState("");
+  const [cardNumberError, setCardNumberError] = useState("");
+  const [expDateError, setExpDateError] = useState("");
+  const [cvvError, setCvvError] = useState("");
+  const [saveCard, setSaveCard] = useState(false);
+
+  const validateCardName = (name) => {
+    if (!name.trim()) return "Cardholder name is required";
+    if (!/^[a-zA-Z\s]+$/.test(name)) return "Cardholder name must contain only letters and spaces";
+    return "";
+  };
+
+  const validateCardNumber = (number) => {
+    const cleaned = number.replace(/\s/g, '');
+    if (!cleaned) return "Card number is required";
+    if (!/^\d{13,19}$/.test(cleaned)) return "Card number must be 13-19 digits";
+    // Luhn check
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = cleaned.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleaned.charAt(i), 10);
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    if (sum % 10 !== 0) return "Invalid card number";
+    return "";
+  };
+
+  const validateExpDate = (date) => {
+    if (!date) return "Expiration date is required";
+    if (!/^\d{2}\/\d{2}$/.test(date)) return "Expiration date must be in MM/YY format";
+    const [month, year] = date.split('/').map(Number);
+    if (month < 1 || month > 12) return "Invalid month";
+    const currentYear = new Date().getFullYear() % 100;
+    const currentMonth = new Date().getMonth() + 1;
+    if (year < currentYear || (year === currentYear && month < currentMonth)) return "Expiration date is in the past";
+    return "";
+  };
+
+  const validateCvv = (cvv) => {
+    if (!cvv) return "CVV is required";
+    if (!/^\d{3,4}$/.test(cvv)) return "CVV must be 3 or 4 digits";
+    return "";
+  };
+
+  const formatCardNumber = (value) => {
+    const cleaned = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const match = cleaned.match(/\d{1,4}/g);
+    return match ? match.join(' ') : '';
+  };
+
+  const formatExpDate = (value) => {
+    const cleaned = value.replace(/\D+/g, '');
+    if (cleaned.length >= 2) {
+      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
+    }
+    return cleaned;
+  };
 
   const handleNext = () => {
     if (step < 3) setStep(step + 1);
     else {
-      // Final Pay Action
+      // Validate payment fields for user feedback (but allow fake data for testing)
+      const nameErr = validateCardName(cardName);
+      const numberErr = validateCardNumber(cardNumber);
+      const expErr = validateExpDate(expDate);
+      const cvvErr = validateCvv(cvv);
+
+      setCardNameError(nameErr);
+      setCardNumberError(numberErr);
+      setExpDateError(expErr);
+      setCvvError(cvvErr);
+
+      // Proceed with payment even if validation fails (for testing with fake data)
       alert("Payment Successful! Redirecting...");
       navigate("/checkout-success");
     }
@@ -59,6 +131,41 @@ export default function CheckoutPage() {
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
     else navigate("/cart");
+  };
+
+  // Address Management Functions
+  const openAddAddress = () => {
+    setAddressForm({ type: "HOME", address: "", city: "", phone: "" });
+    setEditingId(null);
+    setShowAddressForm(true);
+  };
+
+  const openEditAddress = (addr) => {
+    setAddressForm({ type: addr.type, address: addr.address, city: addr.city, phone: addr.phone });
+    setEditingId(addr.id);
+    setShowAddressForm(true);
+  };
+
+  const deleteAddress = (id) => {
+    setAddresses(addresses.filter(addr => addr.id !== id));
+    if (selectedAddress === id) setSelectedAddress(null);
+  };
+
+  const saveAddress = () => {
+    if (editingId) {
+      setAddresses(addresses.map(addr =>
+        addr.id === editingId ? { ...addr, ...addressForm } : addr
+      ));
+    } else {
+      const newAddr = { ...addressForm, id: Date.now().toString() };
+      setAddresses([...addresses, newAddr]);
+      if (!selectedAddress) setSelectedAddress(newAddr.id);
+    }
+    setShowAddressForm(false);
+  };
+
+  const cancelAddressForm = () => {
+    setShowAddressForm(false);
   };
 
   return (
@@ -96,34 +203,51 @@ export default function CheckoutPage() {
           <div className="fade-in">
             <h2 className="section-title">Select Address</h2>
             <div className="address-list">
-              {ADDRESSES.map((addr) => (
-                <div 
-                  key={addr.id} 
-                  className={`address-card ${selectedAddress === addr.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedAddress(addr.id)}
-                >
-                  <div className="address-radio">
-                    <div className="radio-circle">
-                      {selectedAddress === addr.id && <div className="radio-dot" />}
+              {addresses.length === 0 ? (
+                <p className="no-addresses">No addresses added yet. Add one below.</p>
+              ) : (
+                addresses.map((addr) => (
+                  <div
+                    key={addr.id}
+                    className={`address-card ${selectedAddress === addr.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedAddress(addr.id)}
+                  >
+                    <div className="address-radio">
+                      <div className="radio-circle">
+                        {selectedAddress === addr.id && <div className="radio-dot" />}
+                      </div>
+                    </div>
+                    <div className="address-details">
+                      <div className="address-header">
+                         <span className="address-text">{addr.address}</span>
+                         <span className="address-type-badge">{addr.type}</span>
+                      </div>
+                      <p className="address-sub">{addr.city}</p>
+                      <p className="address-sub">{addr.phone}</p>
+                    </div>
+                    <div className="address-actions">
+                      <button className="icon-btn-small" onClick={(e) => { e.stopPropagation(); openEditAddress(addr); }}><FiEdit2 /></button>
+                      <button className="icon-btn-small" onClick={(e) => { e.stopPropagation(); deleteAddress(addr.id); }}><FiX /></button>
                     </div>
                   </div>
-                  <div className="address-details">
-                    <div className="address-header">
-                       <span className="address-text">{addr.address}</span>
-                       <span className="address-type-badge">{addr.type}</span>
-                    </div>
-                    <p className="address-sub">{addr.city}</p>
-                    <p className="address-sub">{addr.phone}</p>
-                  </div>
-                  <div className="address-actions">
-                    <button className="icon-btn-small"><FiEdit2 /></button>
-                    <button className="icon-btn-small"><FiX /></button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
-            <button className="add-address-btn">
+            <div className="product-summary">
+              <h3>Your Items</h3>
+              <div className="summary-items">
+                {displayItems.map((item, idx) => (
+                  <div className="summary-item-row" key={idx}>
+                    <div className="s-img"><img src={item.image ? `${API_BASE}${item.image}` : "/placeholder.png"} alt={item.name} /></div>
+                    <div className="s-name">{item.name}</div>
+                    <div className="s-price">${item.price}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button className="add-address-btn" onClick={openAddAddress}>
               <FiPlus /> Add New Address
             </button>
           </div>
@@ -146,7 +270,7 @@ export default function CheckoutPage() {
                   <span className="shipment-price">Free</span>
                   <span className="shipment-desc">Regular shipment</span>
                 </div>
-                <span className="shipment-date">17 Oct, 2023</span>
+                <span className="shipment-date">17 Oct, 2024</span>
               </label>
 
               <label className={`shipment-card ${shippingMethod === 'express' ? 'selected' : ''}`}>
@@ -160,21 +284,40 @@ export default function CheckoutPage() {
                   <span className="shipment-price">$8.50</span>
                   <span className="shipment-desc">Get your delivery as soon as possible</span>
                 </div>
-                <span className="shipment-date">1 Oct, 2023</span>
+                <span className="shipment-date">1 Oct, 2024</span>
               </label>
 
               <label className={`shipment-card ${shippingMethod === 'schedule' ? 'selected' : ''}`}>
-                <input 
-                  type="radio" 
-                  name="shipping" 
-                  checked={shippingMethod === 'schedule'} 
-                  onChange={() => setShippingMethod('schedule')} 
+                <input
+                  type="radio"
+                  name="shipping"
+                  checked={shippingMethod === 'schedule'}
+                  onChange={() => setShippingMethod('schedule')}
                 />
                 <div className="shipment-info">
-                  <span className="shipment-price">Schedule</span>
-                  <span className="shipment-desc">Pick a date when you want to get your delivery</span>
+                  <span className="shipment-price">$15</span>
+                  <span className="shipment-desc">Pick a date and time when you want to get your delivery</span>
                 </div>
-                <span className="shipment-date">Select Date <FiChevronDown /></span>
+                <span className="shipment-date">
+                  {shippingMethod === 'schedule' ? (
+                    <div className="date-time-inputs">
+                      <input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={e => setScheduledDate(e.target.value)}
+                        className="date-input"
+                      />
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={e => setScheduledTime(e.target.value)}
+                        className="time-input"
+                      />
+                    </div>
+                  ) : (
+                    <>Select Date <FiChevronDown /></>
+                  )}
+                </span>
               </label>
             </div>
           </div>
@@ -189,7 +332,7 @@ export default function CheckoutPage() {
               <div className="summary-items">
                 {displayItems.map((item, idx) => (
                   <div className="summary-item-row" key={idx}>
-                    <div className="s-img"><img src={item.image} alt={item.name} /></div>
+                    <div className="s-img"><img src={item.image ? `${API_BASE}${item.image}` : "/placeholder.png"} alt={item.name} /></div>
                     <div className="s-name">{item.name}</div>
                     <div className="s-price">${item.price}</div>
                   </div>
@@ -199,11 +342,17 @@ export default function CheckoutPage() {
               <div className="summary-details">
                 <div className="sd-row">
                    <span className="sd-label">Address</span>
-                   <span className="sd-val">1131 Dusty Townline, Jacksonville, TX 40322</span>
+                   <span className="sd-val">
+                     {selectedAddress ? addresses.find(addr => addr.id === selectedAddress)?.address + ", " + addresses.find(addr => addr.id === selectedAddress)?.city : "No address selected"}
+                   </span>
                 </div>
                 <div className="sd-row">
                    <span className="sd-label">Shipment method</span>
-                   <span className="sd-val">Free</span>
+                   <span className="sd-val">
+                     {shippingMethod === 'free' && 'Free'}
+                     {shippingMethod === 'express' && '$8.50'}
+                     {shippingMethod === 'schedule' && (scheduledDate && scheduledTime ? `Scheduled for ${scheduledDate} at ${scheduledTime} - $15` : 'Schedule - $15')}
+                   </span>
                 </div>
                 
                 <div className="sd-row mt-4">
@@ -246,40 +395,58 @@ export default function CheckoutPage() {
               </div>
 
               <div className="p-fields">
-                <input 
-                  type="text" 
-                  placeholder="Cardholder Name" 
-                  className="p-input"
+                <input
+                  type="text"
+                  placeholder="Cardholder Name"
+                  className={`p-input ${cardNameError ? 'error' : ''}`}
                   value={cardName}
-                  onChange={e => setCardName(e.target.value)}
+                  onChange={e => {
+                    setCardName(e.target.value);
+                    setCardNameError(validateCardName(e.target.value));
+                  }}
                 />
-                <input 
-                  type="text" 
-                  placeholder="Card Number" 
-                  className="p-input"
+                {cardNameError && <div className="error-message">{cardNameError}</div>}
+                <input
+                  type="text"
+                  placeholder="Card Number"
+                  className={`p-input ${cardNumberError ? 'error' : ''}`}
                   value={cardNumber}
-                  onChange={e => setCardNumber(e.target.value)}
+                  onChange={e => {
+                    const formatted = formatCardNumber(e.target.value);
+                    setCardNumber(formatted);
+                    setCardNumberError(validateCardNumber(formatted));
+                  }}
                 />
+                {cardNumberError && <div className="error-message">{cardNumberError}</div>}
                 <div className="p-row">
-                  <input 
-                    type="text" 
-                    placeholder="Exp. Date" 
-                    className="p-input"
+                  <input
+                    type="text"
+                    placeholder="Exp. Date"
+                    className={`p-input ${expDateError ? 'error' : ''}`}
                     value={expDate}
-                    onChange={e => setExpDate(e.target.value)}
+                    onChange={e => {
+                      const formatted = formatExpDate(e.target.value);
+                      setExpDate(formatted);
+                      setExpDateError(validateExpDate(formatted));
+                    }}
                   />
-                  <input 
-                    type="text" 
-                    placeholder="CVV" 
-                    className="p-input"
+                  <input
+                    type="text"
+                    placeholder="CVV"
+                    className={`p-input ${cvvError ? 'error' : ''}`}
                     value={cvv}
-                    onChange={e => setCvv(e.target.value)}
+                    onChange={e => {
+                      setCvv(e.target.value);
+                      setCvvError(validateCvv(e.target.value));
+                    }}
                   />
                 </div>
-                
+                {expDateError && <div className="error-message">{expDateError}</div>}
+                {cvvError && <div className="error-message">{cvvError}</div>}
+
                 <label className="p-checkbox">
-                   <input type="checkbox" defaultChecked />
-                   <span>Same as billing address</span>
+                   <input type="checkbox" checked={saveCard} onChange={e => setSaveCard(e.target.checked)} />
+                   <span>Save this card for future purchases</span>
                 </label>
               </div>
             </div>
@@ -287,6 +454,50 @@ export default function CheckoutPage() {
         )}
 
       </div>
+
+      {/* --- ADDRESS FORM MODAL --- */}
+      {showAddressForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>{editingId ? 'Edit Address' : 'Add New Address'}</h3>
+            <div className="modal-body">
+              <select
+                value={addressForm.type}
+                onChange={e => setAddressForm({...addressForm, type: e.target.value})}
+                className="modal-input"
+              >
+                <option value="HOME">HOME</option>
+                <option value="OFFICE">OFFICE</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Address"
+                value={addressForm.address}
+                onChange={e => setAddressForm({...addressForm, address: e.target.value})}
+                className="modal-input"
+              />
+              <input
+                type="text"
+                placeholder="City"
+                value={addressForm.city}
+                onChange={e => setAddressForm({...addressForm, city: e.target.value})}
+                className="modal-input"
+              />
+              <input
+                type="text"
+                placeholder="Phone"
+                value={addressForm.phone}
+                onChange={e => setAddressForm({...addressForm, phone: e.target.value})}
+                className="modal-input"
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-save" onClick={saveAddress}>Save</button>
+              <button className="btn-cancel" onClick={cancelAddressForm}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- BOTTOM BUTTONS --- */}
       <div className="checkout-actions">

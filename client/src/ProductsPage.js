@@ -193,14 +193,7 @@ export default function ProductsPage() {
           ))}
         </div>
 
-        {/* Pagination (Visual Only) */}
-        <div className="pagination-container" style={{display:'flex', justifyContent:'center', gap:'8px', marginTop:'50px'}}>
-            <button style={{width:'32px', height:'32px', background:'black', color:'white', border:'none', borderRadius:'4px', cursor:'pointer'}}>1</button>
-            <button style={{width:'32px', height:'32px', background:'#f5f5f7', color:'black', border:'none', borderRadius:'4px', cursor:'pointer'}}>2</button>
-            <button style={{width:'32px', height:'32px', background:'#f5f5f7', color:'black', border:'none', borderRadius:'4px', cursor:'pointer'}}>3</button>
-            <span style={{alignSelf:'center', margin:'0 4px'}}>...</span>
-            <button style={{width:'32px', height:'32px', background:'#f5f5f7', color:'black', border:'none', borderRadius:'4px', cursor:'pointer'}}>12</button>
-        </div>
+
 
         </main>
       </div>

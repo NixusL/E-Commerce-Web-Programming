@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "./cart/CartContext";
 import { FiX, FiMinus, FiPlus } from "react-icons/fi";
 
+const API_BASE = "http://localhost:5000";
+
 // Mock Images for the cart items shown in your design if real ones are missing
 const MOCK_IMAGES = {
   "iPhone 14 Pro Max": "https://assets.swappie.com/cdn-cgi/image/width=600,height=600,fit=contain,format=auto/swappie-iphone-14-pro-deep-purple-back.png",
@@ -44,7 +46,7 @@ export default function CartPage() {
           ) : (
             items.map((item) => {
               // Fallback image logic
-              let imgSrc = item.image;
+              let imgSrc = item.image ? `${API_BASE}${item.image}` : "";
               if (!imgSrc) {
                  if (item.name.includes("iPhone")) imgSrc = MOCK_IMAGES["iPhone 14 Pro Max"];
                  else if (item.name.includes("AirPods")) imgSrc = MOCK_IMAGES["AirPods Max"];

@@ -128,39 +128,80 @@ async function confirmPayment(req, res) {
       return res.status(400).json({ message: "Payment not completed" });
     }
 
-    // Parse metadata
-    const itemsJson = session.metadata.itemsJson;
-    let items = [];
-    if (itemsJson) {
-      try {
-        items = JSON.parse(itemsJson);
-      } catch {
-        items = [];
-      }
-    }
-
-    // Calculate total and prepare order items
+    const metadata = session.metadata;
     let total = 0;
     const orderItems = [];
 
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product) continue;
+    if (metadata.type === "buy-now") {
+      // Handle buy-now (single product)
+      const productId = metadata.productId;
+      const qty = Number(metadata.qty) || 1;
 
-      total += product.price * item.qty;
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      if (product.stock < qty) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+      }
+
+      total = product.price * qty;
 
       orderItems.push({
         product: product._id,
-        qty: item.qty,
+        qty,
         price: product.price,
         name: product.name,
         image: product.image,
       });
 
       // Reduce stock
-      product.stock -= item.qty;
+      product.stock -= qty;
       product.inStock = product.stock > 0;
       await product.save();
+
+    } else if (metadata.type === "cart-checkout") {
+      // Handle cart checkout (multiple items)
+      const itemsJson = metadata.itemsJson;
+      let items = [];
+      if (itemsJson) {
+        try {
+          items = JSON.parse(itemsJson);
+        } catch {
+          items = [];
+        }
+      }
+
+      for (const item of items) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+          return res.status(404).json({ message: `Product ${item.productId} not found` });
+        }
+        if (product.stock < item.qty) {
+          return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        }
+
+        total += product.price * item.qty;
+
+        orderItems.push({
+          product: product._id,
+          qty: item.qty,
+          price: product.price,
+          name: product.name,
+          image: product.image,
+        });
+
+        // Reduce stock
+        product.stock -= item.qty;
+        product.inStock = product.stock > 0;
+        await product.save();
+      }
+
+      // Clear cart
+      await Cart.deleteOne({ user: userId });
+
+    } else {
+      return res.status(400).json({ message: "Invalid session type" });
     }
 
     // Create order
@@ -177,9 +218,6 @@ async function confirmPayment(req, res) {
     });
 
     await order.save();
-
-    // Clear cart
-    await Cart.deleteOne({ user: userId });
 
     res.json({ message: "Payment confirmed", order, orderId: order._id });
   } catch (err) {

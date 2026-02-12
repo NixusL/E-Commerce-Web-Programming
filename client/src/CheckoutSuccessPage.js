@@ -32,7 +32,7 @@ export default function CheckoutSuccessPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ session_id: sessionId }),
+        body: JSON.stringify({ sessionId }),
       });
 
       const data = await res.json().catch(() => ({}));

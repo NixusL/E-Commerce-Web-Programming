@@ -164,13 +164,13 @@ export default function MyOrdersPage({ showToast }) {
   if (error) return <p className="no-products">Error: {error}</p>;
 
   return (
-    <div>
-      <h2 style={{ marginBottom: "1rem" }}>My Orders</h2>
+    <div className="my-orders-page">
+      <h2 className="my-orders-title">My Orders</h2>
 
       {orders.length === 0 ? (
-        <p className="no-products">No orders yet.</p>
+        <p className="no-orders">No orders yet.</p>
       ) : (
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <div className="orders-grid">
           {orders.map((o) => {
             const image = o.items?.[0]?.image || "";
             const cancellable = ["pending", "processing"].includes(String(o.status || "").toLowerCase());
@@ -179,132 +179,56 @@ export default function MyOrdersPage({ showToast }) {
               (o.refundStatus === "none" || !o.refundStatus) &&
               ["completed", "paid"].includes(String(o.status || "").toLowerCase());
 
-            const st = statusStyle(o.status);
-            const refundSt = refundStyle(o.refundStatus || "none");
+            const statusClass = `status-${String(o.status || "").toLowerCase()}`;
+            const refundClass = o.refundStatus && o.refundStatus !== "none" ? `refund-${String(o.refundStatus || "").toLowerCase()}` : "";
 
             return (
-              <div
-                key={o._id}
-                style={{
-                  border: "1px solid #1f2937",
-                  borderRadius: "1rem",
-                  padding: "1rem",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "12px",
-                    left: "12px",
-                    fontSize: "1.35rem",
-                  }}
-                  aria-label="product-image"
-                >
+              <div key={o._id} className="order-card">
+                <div className="order-header">
                   {image ? (
                     <img
                       src={`http://localhost:5000${image}`}
                       alt="Product"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        objectFit: "cover",
-                        borderRadius: "4px",
-                      }}
+                      className="order-image"
                     />
                   ) : (
-                    "🛒"
+                    <div className="order-image-placeholder">🛒</div>
                   )}
-                </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    paddingLeft: "2.2rem",
-                    alignItems: "center",
-                    gap: "0.75rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "0.25rem 0.7rem",
-                      borderRadius: "999px",
-                      border: `1px solid ${st.border}`,
-                      color: st.text,
-                      background: st.bg,
-                      fontWeight: 600,
-                      textTransform: "capitalize",
-                    }}
-                  >
+                  <span className={`status-badge ${statusClass}`}>
                     {o.status}
                   </span>
 
                   {o.refundStatus && o.refundStatus !== "none" && (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "0.25rem 0.7rem",
-                        borderRadius: "999px",
-                        border: `1px solid ${refundSt.border}`,
-                        color: refundSt.text,
-                        background: refundSt.bg,
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                      }}
-                    >
+                    <span className={`refund-badge ${refundClass}`}>
                       Refund: {o.refundStatus}
                     </span>
                   )}
 
-                  <span style={{ marginLeft: "auto" }}>
+                  <span className="order-total">
                     Total: ${Number(o.total).toFixed(2)}
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    color: "#9ca3af",
-                    marginTop: "0.4rem",
-                    paddingLeft: "2.2rem",
-                  }}
-                >
+                <div className="order-date">
                   {new Date(o.createdAt).toLocaleString()}
                 </div>
 
-                <ul style={{ marginTop: "0.75rem", paddingLeft: "2.2rem" }}>
+                <ul className="order-items">
                   {(o.items || []).map((it, idx) => (
-                    <li key={idx}>
-                      {it.name} × {it.qty} — ${Number(it.price).toFixed(2)}
+                    <li key={idx} className="order-item">
+                      <span className="order-item-name">{it.name}</span>
+                      <span className="order-item-details">× {it.qty} — ${Number(it.price).toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "0.75rem",
-                    marginTop: "0.75rem",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="order-actions">
                   {cancellable && (
                     <button
                       type="button"
                       onClick={() => cancelOrder(o._id)}
-                      style={{
-                        borderRadius: "999px",
-                        padding: "0.5rem 1.1rem",
-                        border: "1px solid #ef4444",
-                        background: "transparent",
-                        color: "#fecaca",
-                        cursor: "pointer",
-                      }}
+                      className="btn-cancel"
                     >
                       Cancel Order
                     </button>
@@ -314,14 +238,7 @@ export default function MyOrdersPage({ showToast }) {
                     <button
                       type="button"
                       onClick={() => requestRefund(o._id)}
-                      style={{
-                        borderRadius: "999px",
-                        padding: "0.5rem 1.1rem",
-                        border: "1px solid #60a5fa",
-                        background: "transparent",
-                        color: "#bfdbfe",
-                        cursor: "pointer",
-                      }}
+                      className="btn-refund"
                     >
                       Request Refund
                     </button>
