@@ -165,10 +165,17 @@ export default function MyOrdersPage({ showToast }) {
 
   return (
     <div className="my-orders-page">
-      <h2 className="my-orders-title">My Orders</h2>
+      <div className="orders-header">
+        <h2 className="my-orders-title">My Orders</h2>
+        <p className="orders-subtitle">Track and manage your purchases</p>
+      </div>
 
       {orders.length === 0 ? (
-        <p className="no-orders">No orders yet.</p>
+        <div className="no-orders-container">
+          <div className="no-orders-icon">📦</div>
+          <p className="no-orders">No orders yet.</p>
+          <p className="no-orders-sub">Start shopping to see your orders here!</p>
+        </div>
       ) : (
         <div className="orders-grid">
           {orders.map((o) => {
@@ -185,43 +192,55 @@ export default function MyOrdersPage({ showToast }) {
             return (
               <div key={o._id} className="order-card">
                 <div className="order-header">
-                  {image ? (
-                    <img
-                      src={`http://localhost:5000${image}`}
-                      alt="Product"
-                      className="order-image"
-                    />
-                  ) : (
-                    <div className="order-image-placeholder">🛒</div>
-                  )}
+                  <div className="order-image-section">
+                    {image ? (
+                      <img
+                        src={`http://localhost:5000${image}`}
+                        alt="Product"
+                        className="order-image"
+                      />
+                    ) : (
+                      <div className="order-image-placeholder">🛒</div>
+                    )}
+                  </div>
 
-                  <span className={`status-badge ${statusClass}`}>
-                    {o.status}
-                  </span>
+                  <div className="order-info-section">
+                    <div className="order-badges">
+                      <span className={`status-badge ${statusClass}`}>
+                        {o.status}
+                      </span>
 
-                  {o.refundStatus && o.refundStatus !== "none" && (
-                    <span className={`refund-badge ${refundClass}`}>
-                      Refund: {o.refundStatus}
-                    </span>
-                  )}
+                      {o.refundStatus && o.refundStatus !== "none" && (
+                        <span className={`refund-badge ${refundClass}`}>
+                          Refund: {o.refundStatus}
+                        </span>
+                      )}
+                    </div>
 
-                  <span className="order-total">
-                    Total: ${Number(o.total).toFixed(2)}
-                  </span>
+                    <div className="order-total-price">
+                      <span className="order-total-label">Total:</span>
+                      <span className="order-total-amount">${Number(o.total).toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="order-date">
-                  {new Date(o.createdAt).toLocaleString()}
-                </div>
+                <div className="order-details">
+                  <div className="order-date">
+                    <span className="date-label">Ordered on:</span> {new Date(o.createdAt).toLocaleString()}
+                  </div>
 
-                <ul className="order-items">
-                  {(o.items || []).map((it, idx) => (
-                    <li key={idx} className="order-item">
-                      <span className="order-item-name">{it.name}</span>
-                      <span className="order-item-details">× {it.qty} — ${Number(it.price).toFixed(2)}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <div className="order-items-section">
+                    <h4 className="items-title">Items:</h4>
+                    <ul className="order-items">
+                      {(o.items || []).map((it, idx) => (
+                        <li key={idx} className="order-item">
+                          <span className="order-item-name">{it.name}</span>
+                          <span className="order-item-details">× {it.qty} — ${Number(it.price).toFixed(2)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
 
                 <div className="order-actions">
                   {cancellable && (

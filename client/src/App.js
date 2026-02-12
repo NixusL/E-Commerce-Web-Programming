@@ -161,6 +161,11 @@ export default function App() {
           <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Home</NavLink>
           <NavLink to="/products" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Products</NavLink>
 
+          {/* My Orders Link (Only visible when logged in) */}
+          {user && (
+            <NavLink to="/my-orders" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>My Orders</NavLink>
+          )}
+
           {/* Admin Link (Only visible to admin) */}
           {user?.role === "admin" && (
             <NavLink to="/admin" className="nav-link" style={{color: '#facc15'}}>Admin</NavLink>

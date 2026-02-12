@@ -96,3 +96,117 @@ exports.getSellerRequestStatus = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+// GET /api/users/addresses
+exports.getAddresses = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+        const user = await User.findById(userId).select('addresses');
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Add id field to each address for frontend compatibility
+        const addresses = user.addresses.map((addr, index) => ({
+            id: index.toString(),
+            ...addr.toObject()
+        }));
+
+        return res.json({ addresses });
+    } catch (err) {
+        console.error("getAddresses error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// POST /api/users/addresses
+exports.addAddress = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+        const { type, address, city, phone } = req.body;
+        if (!address || !city || !phone) {
+            return res.status(400).json({ message: "Address, city, and phone are required" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const newAddress = { type: type || "HOME", address, city, phone };
+        user.addresses.push(newAddress);
+        await user.save();
+
+        const addedAddress = user.addresses[user.addresses.length - 1];
+        const addressWithId = {
+            id: (user.addresses.length - 1).toString(),
+            ...addedAddress.toObject()
+        };
+
+        return res.status(201).json({ address: addressWithId });
+    } catch (err) {
+        console.error("addAddress error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// PUT /api/users/addresses/:id
+exports.updateAddress = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+        const addressId = parseInt(req.params.id);
+        const { type, address, city, phone } = req.body;
+
+        if (!address || !city || !phone) {
+            return res.status(400).json({ message: "Address, city, and phone are required" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (addressId < 0 || addressId >= user.addresses.length) {
+            return res.status(404).json({ message: "Address not found" });
+        }
+
+        user.addresses[addressId] = { type: type || "HOME", address, city, phone };
+        await user.save();
+
+        const updatedAddress = user.addresses[addressId];
+        const addressWithId = {
+            id: addressId.toString(),
+            ...updatedAddress.toObject()
+        };
+
+        return res.json({ address: addressWithId });
+    } catch (err) {
+        console.error("updateAddress error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// DELETE /api/users/addresses/:id
+exports.deleteAddress = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+        const addressId = parseInt(req.params.id);
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (addressId < 0 || addressId >= user.addresses.length) {
+            return res.status(404).json({ message: "Address not found" });
+        }
+
+        user.addresses.splice(addressId, 1);
+        await user.save();
+
+        return res.json({ message: "Address deleted successfully" });
+    } catch (err) {
+        console.error("deleteAddress error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};

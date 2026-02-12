@@ -1,5 +1,5 @@
 /* src/CheckoutPage.js */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMapPin, FiTruck, FiCreditCard, FiEdit2, FiX, FiPlus, FiChevronDown } from "react-icons/fi";
 import { useCart } from "./cart/CartContext";
@@ -18,7 +18,7 @@ const MOCK_ITEMS = [
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, cartTotal } = useCart(); // Use real cart if available
-  
+
   // Use MOCK_ITEMS if cart is empty for visualization purposes
   const displayItems = items.length > 0 ? items : MOCK_ITEMS;
   const displayTotal = items.length > 0 ? cartTotal : 2347;
@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("free");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // Address Form Modal State
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -50,6 +51,39 @@ export default function CheckoutPage() {
   const [expDateError, setExpDateError] = useState("");
   const [cvvError, setCvvError] = useState("");
   const [saveCard, setSaveCard] = useState(false);
+
+  // Fetch addresses on component mount
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/api/users/addresses`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses(data.addresses);
+          if (data.addresses.length > 0 && !selectedAddress) {
+            setSelectedAddress(data.addresses[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch addresses:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAddresses();
+  }, []);
 
   const validateCardName = (name) => {
     if (!name.trim()) return "Cardholder name is required";
@@ -108,7 +142,7 @@ export default function CheckoutPage() {
     return cleaned;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 3) setStep(step + 1);
     else {
       // Validate payment fields for user feedback (but allow fake data for testing)
@@ -122,9 +156,33 @@ export default function CheckoutPage() {
       setExpDateError(expErr);
       setCvvError(cvvErr);
 
-      // Proceed with payment even if validation fails (for testing with fake data)
-      alert("Payment Successful! Redirecting...");
-      navigate("/checkout-success");
+      // For testing, create order using bypass endpoint
+      try {
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token) {
+          alert("Please log in to complete purchase");
+          navigate("/login");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/api/orders/bypass`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          navigate("/checkout-success");
+        } else {
+          alert(data.message || "Failed to create order");
+        }
+      } catch (err) {
+        console.error("Order creation failed:", err);
+        alert("Network error. Please try again.");
+      }
     }
   };
 
@@ -146,22 +204,89 @@ export default function CheckoutPage() {
     setShowAddressForm(true);
   };
 
-  const deleteAddress = (id) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
-    if (selectedAddress === id) setSelectedAddress(null);
+  const deleteAddress = async (id) => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to delete address");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/users/addresses/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setAddresses(addresses.filter(addr => addr.id !== id));
+        if (selectedAddress === id) setSelectedAddress(null);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to delete address");
+      }
+    } catch (err) {
+      console.error("Delete address failed:", err);
+      alert("Network error. Please try again.");
+    }
   };
 
-  const saveAddress = () => {
-    if (editingId) {
-      setAddresses(addresses.map(addr =>
-        addr.id === editingId ? { ...addr, ...addressForm } : addr
-      ));
-    } else {
-      const newAddr = { ...addressForm, id: Date.now().toString() };
-      setAddresses([...addresses, newAddr]);
-      if (!selectedAddress) setSelectedAddress(newAddr.id);
+  const saveAddress = async () => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to save address");
+        return;
+      }
+
+      if (editingId) {
+        // Update existing address
+        const res = await fetch(`${API_BASE}/api/users/addresses/${editingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(addressForm),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses(addresses.map(addr =>
+            addr.id === editingId ? data.address : addr
+          ));
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to update address");
+          return;
+        }
+      } else {
+        // Add new address
+        const res = await fetch(`${API_BASE}/api/users/addresses`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(addressForm),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses([...addresses, data.address]);
+          if (!selectedAddress) setSelectedAddress(data.address.id);
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to add address");
+          return;
+        }
+      }
+      setShowAddressForm(false);
+     } catch (err) {
+      console.error("Save address failed:", err);
+      alert("Network error. Please try again.");
     }
-    setShowAddressForm(false);
   };
 
   const cancelAddressForm = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useCart } from "./cart/CartContext";
-import { FiHeart, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiHeart, FiChevronDown, FiChevronUp, FiCheck } from "react-icons/fi";
 
 const API_BASE = "http://localhost:5000";
 
@@ -10,6 +10,9 @@ export default function ProductsPage() {
   // State for products
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // State for modal
+  const [showModal, setShowModal] = useState(false);
 
   // State for Tabs
   const [activeTab, setActiveTab] = useState("All Products");
@@ -181,10 +184,14 @@ export default function ProductsPage() {
               {/* Buy Button */}
               <button
                 className="btn-buy-black"
-                onClick={() => {
-                   addToCart(product);
-                   // You can replace this alert with a Toast if you have one integrated
-                   alert(`Added ${product.name} to cart`);
+                onClick={async () => {
+                  try {
+                    await addToCart(product);
+                    setShowModal(true);
+                    setTimeout(() => setShowModal(false), 3000);
+                  } catch (error) {
+                    // Handle error silently or show error modal if needed
+                  }
                 }}
               >
                 Buy Now
@@ -197,6 +204,16 @@ export default function ProductsPage() {
 
         </main>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <FiCheck size={24} style={{ color: '#4CAF50', marginBottom: '10px' }} />
+            <p>Product added to cart!</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

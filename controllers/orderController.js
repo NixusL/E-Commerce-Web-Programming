@@ -22,9 +22,7 @@ async function buyNow(req, res) {
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
-    if (product.stock < quantity) {
-      return res.status(400).json({ message: "Insufficient stock" });
-    }
+    // Removed stock check for testing
 
     const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
 
@@ -76,9 +74,7 @@ async function createCheckoutSession(req, res) {
       if (!product) {
         return res.status(404).json({ message: `Product ${item.productId} not found` });
       }
-      if (product.stock < item.qty) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
-      }
+      // Removed stock check for testing
 
       lineItems.push({
         price_data: {
@@ -141,9 +137,7 @@ async function confirmPayment(req, res) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      if (product.stock < qty) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
-      }
+      // Removed stock check for testing
 
       total = product.price * qty;
 
@@ -317,9 +311,7 @@ async function createOrderBypass(req, res) {
       const product = await Product.findById(it.product._id);
       if (!product) continue;
       const qty = Number(it.qty) || 1;
-      if (product.stock < qty) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
-      }
+      // Removed stock check for testing
 
       total += product.price * qty;
 

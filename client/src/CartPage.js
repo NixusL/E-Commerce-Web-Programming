@@ -92,19 +92,6 @@ export default function CartPage() {
         {/* RIGHT COLUMN: Order Summary */}
         <div className="cart-summary-box">
           <h2 className="summary-title">Order Summary</h2>
-          
-          <div className="promo-code-section">
-            <label className="summary-label">Discount code / Promo code</label>
-            <input type="text" placeholder="Code" className="promo-input" />
-          </div>
-
-          <div className="bonus-card-section">
-            <label className="summary-label">Your bonus card number</label>
-            <div style={{display:'flex', gap:'10px'}}>
-              <input type="text" placeholder="Enter Card Number" className="promo-input" />
-              <button className="apply-btn">Apply</button>
-            </div>
-          </div>
 
           <div className="summary-row">
             <span>Subtotal</span>

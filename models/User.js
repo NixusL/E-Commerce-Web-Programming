@@ -58,6 +58,26 @@ const userSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    addresses: [{
+      type: {
+        type: String,
+        enum: ["HOME", "OFFICE"],
+        default: "HOME"
+      },
+      address: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      phone: {
+        type: String,
+        required: true
+      }
+    }],
   },
   { timestamps: true }
 );

@@ -1,7 +1,7 @@
 /* src/HomePage.js */
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiHeart } from "react-icons/fi";
+import { FiHeart, FiCheck } from "react-icons/fi";
 import { useCart } from "./cart/CartContext";
 
 // Data matching the "New Arrival" screenshot
@@ -63,6 +63,9 @@ export default function HomePage() {
 
   // State for new arrivals
   const [newArrivals, setNewArrivals] = useState([]);
+
+  // State for modal
+  const [showModal, setShowModal] = useState(false);
 
   // Fetch products on mount and set new arrivals
   useEffect(() => {
@@ -159,9 +162,14 @@ export default function HomePage() {
 
               <button
                 className="btn-buy-black"
-                onClick={() => {
-                   addToCart(product);
-                   alert(`Added ${product.name} to cart`);
+                onClick={async () => {
+                  try {
+                    await addToCart(product);
+                    setShowModal(true);
+                    setTimeout(() => setShowModal(false), 3000);
+                  } catch (error) {
+                    // Handle error silently or show error modal if needed
+                  }
                 }}
               >
                 Buy Now
@@ -171,6 +179,15 @@ export default function HomePage() {
         </div>
 
       </section>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <p>Product added to cart!</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
