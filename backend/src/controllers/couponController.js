@@ -65,12 +65,15 @@ exports.activateCoupon = async (req, res) => {
     }
 
     // Check if user already used this coupon
-    if (coupon.usedBy.includes(req.user.id)) {
-      return res.status(400).json({ message: "You have already used this coupon" });
+    const userId = req.user?.id || req.user?._id || req.user?.userId || null;
+    if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+    if (coupon.claimedBy.map(String).includes(String(userId))) {
+      return res.status(400).json({ message: "You have already activated this coupon" });
     }
 
-    // Add user to usedBy array
-    coupon.usedBy.push(req.user.id);
+    // Add user to claimedBy array (activation)
+    coupon.claimedBy.push(userId);
     await coupon.save();
 
     res.json({
@@ -86,7 +89,10 @@ exports.activateCoupon = async (req, res) => {
 // User: Get my activated coupons
 exports.getMyCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.find({ usedBy: req.user.id, isActive: true });
+    const userId = req.user?.id || req.user?._id || req.user?.userId || null;
+    if (!userId) return res.status(401).json({ message: "Not authorized" });
+
+    const coupons = await Coupon.find({ claimedBy: userId, isActive: true });
 
     res.json(coupons);
   } catch (error) {

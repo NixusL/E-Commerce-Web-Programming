@@ -28,6 +28,20 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
+    // Addresses for checkout
+    addresses: [
+      {
+        type: {
+          type: String,
+          enum: ["HOME", "OFFICE"],
+          default: "HOME",
+        },
+        address: { type: String, trim: true },
+        city: { type: String, trim: true },
+        phone: { type: String, trim: true },
+      },
+    ],
+
     /* ================================
        NEW: Seller request workflow
        ================================ */

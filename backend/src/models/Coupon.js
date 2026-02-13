@@ -25,6 +25,12 @@ const couponSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    claimedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     usedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -40,6 +46,5 @@ const couponSchema = new mongoose.Schema(
 );
 
 // Ensure unique code index
-couponSchema.index({ code: 1 }, { unique: true });
 
 module.exports = mongoose.model("Coupon", couponSchema);
