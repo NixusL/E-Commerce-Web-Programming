@@ -208,7 +208,7 @@ export default function AdminPanelPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`${API_BASE}/api/coupons`, {
+      const res = await fetch(`${API_BASE}/api/admin/coupons`, {
         credentials: "include",
       });
       const data = await res.json().catch(() => []);
@@ -495,7 +495,7 @@ export default function AdminPanelPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`${API_BASE}/api/coupons`, {
+      const res = await fetch(`${API_BASE}/api/admin/coupons`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -524,7 +524,7 @@ export default function AdminPanelPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`${API_BASE}/api/coupons/${couponId}/deactivate`, {
+      const res = await fetch(`${API_BASE}/api/admin/coupons/${couponId}/deactivate`, {
         method: "PUT",
         credentials: "include",
       });

@@ -21,11 +21,14 @@ exports.createCoupon = async (req, res) => {
       return res.status(400).json({ message: "Coupon code already exists" });
     }
 
+    const userId = req.user?.id || req.user?._id || req.user?.userId || null;
+    if (!userId) return res.status(401).json({ message: "Not authorized" });
+
     const coupon = new Coupon({
       code: code.toUpperCase(),
       name,
       discount,
-      createdBy: req.user.id,
+      createdBy: userId,
       usedBy: [],
       isActive: true,
     });

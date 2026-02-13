@@ -29,6 +29,7 @@ const {
   // Refunds
   adminListRefunds,
 } = require("../controllers/adminController");
+const couponController = require("../controllers/couponController");
 
 router.use(auth, requireAdmin);
 
@@ -62,5 +63,10 @@ router.put("/reports/:id/status", adminUpdateReportStatus);
 
 /* =============== REFUNDS =============== */
 router.get("/refunds", adminListRefunds);
+
+/* =============== COUPONS (admin) =============== */
+router.post("/coupons", couponController.createCoupon);
+router.get("/coupons", couponController.getAllCoupons);
+router.put("/coupons/:id/deactivate", couponController.deactivateCoupon);
 
 module.exports = router;
