@@ -176,6 +176,16 @@ export default function App() {
             <NavLink to="/my-products" className="nav-link" style={{ color: '#facc15' }}>My Products</NavLink>
           )}
 
+          {/* Become Seller Link (Only visible to logged-in non-sellers) */}
+          {user && user.role !== "seller" && user.role !== "admin" && (
+            <NavLink
+              to="/become-seller"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              Become a Seller
+            </NavLink>
+          )}
+
           {/* Seller Refunds Link */}
           {user?.role === "seller" && (
             <NavLink
