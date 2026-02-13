@@ -205,11 +205,6 @@ export default function AdminPanelPage() {
   }
 
   async function loadCoupons() {
-    const me = await getCurrentUser();
-    if (!me || me.role !== "admin") {
-      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
-      return;
-    }
     try {
       setLoading(true);
       setError("");
@@ -217,7 +212,15 @@ export default function AdminPanelPage() {
         credentials: "include",
       });
       const data = await res.json().catch(() => []);
+
+      if (res.status === 403) {
+        // Backend indicates the user is not an admin
+        pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
+        return;
+      }
+
       if (!res.ok) throw new Error(data?.message || "Failed to load coupons");
+
       setCoupons(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Network error");
