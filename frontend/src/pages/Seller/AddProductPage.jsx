@@ -15,6 +15,7 @@ export default function AddProductPage() {
   });
 
   const [categories, setCategories] = useState([]);
+  const [brand, setBrand] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -91,6 +92,7 @@ export default function AddProductPage() {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
+      if (brand) formData.append("brand", brand);
       formData.append("description", form.description);
       formData.append("stock", form.stock);
       if (form.image) formData.append("image", form.image);
@@ -167,7 +169,7 @@ export default function AddProductPage() {
           <select
             className="auth-input"
             value={form.category}
-            onChange={(e) => setField("category", e.target.value)}
+            onChange={(e) => { setField("category", e.target.value); setBrand(""); }}
             required
             disabled={loading}
           >
@@ -179,6 +181,24 @@ export default function AddProductPage() {
             ))}
           </select>
         </label>
+
+        {form.category && (
+          <label className="auth-label">
+            Brand
+            <select
+              className="auth-input"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              required
+              disabled={loading}
+            >
+              <option value="">Select a brand</option>
+              {(categories.find(c => c.name === form.category)?.brands || []).map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="auth-label">
           Description

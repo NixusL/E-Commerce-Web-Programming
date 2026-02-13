@@ -5,7 +5,10 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed:categories": "node src/seed/seedCategories.js",
+    "seed:backfill-categories": "node src/seed/backfillProductCategories.js",
+    "seed:all": "npm run seed:categories && npm run seed:backfill-categories"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

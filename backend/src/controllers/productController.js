@@ -98,6 +98,8 @@ async function createProduct(req, res) {
 
     const { name, price, category, stock, description } = req.body;
 
+    const brand = req.body.brand ? String(req.body.brand).trim() : '';
+
     if (!name || price == null) {
       console.log('Validation failed: name or price missing');
       return res.status(400).json({ message: 'Name and price are required' });
@@ -133,9 +135,18 @@ async function createProduct(req, res) {
 
     console.log('Category doc:', categoryDoc);
 
+    // Validate brand belongs to the selected category (if provided)
+    if (brand) {
+      const allowed = Array.isArray(categoryDoc.brands) ? categoryDoc.brands.map(b => String(b).toLowerCase()) : [];
+      if (!allowed.includes(brand.toLowerCase())) {
+        return res.status(400).json({ message: `Brand '${brand}' is not valid for category '${categoryDoc.name}'` });
+      }
+    }
+
     const product = new Product({
       name,
       price: priceNum,
+      brand,
       category: categoryDoc._id,
       description: description || '',
       image: req.file ? `/uploads/${req.file.filename}` : '',
@@ -194,8 +205,32 @@ async function updateProduct(req, res) {
       product.category = categoryDoc._id;
     }
 
+    // Determine effective category for validating brand (either newly set or existing)
+    let effectiveCategory = null;
+    try {
+      if (req.body.category !== undefined) {
+        effectiveCategory = await Category.findOne({ name: req.body.category && req.body.category.trim() ? req.body.category.trim() : 'Uncategorized' });
+      } else {
+        effectiveCategory = await Category.findById(product.category);
+      }
+    } catch (e) {
+      effectiveCategory = null;
+    }
+
+    if (req.body.brand !== undefined) {
+      const newBrand = req.body.brand ? String(req.body.brand).trim() : '';
+      if (newBrand && effectiveCategory) {
+        const allowed = Array.isArray(effectiveCategory.brands) ? effectiveCategory.brands.map(b => String(b).toLowerCase()) : [];
+        if (!allowed.includes(newBrand.toLowerCase())) {
+          return res.status(400).json({ message: `Brand '${newBrand}' is not valid for category '${effectiveCategory.name}'` });
+        }
+      }
+      // set brand (may be empty string to clear)
+      product.brand = newBrand;
+    }
+
     // Only allow fields you want editable
-    const allowedFields = ["name", "price", "description", "image", "inStock", "stock"];
+    const allowedFields = ["name", "price", "description", "image", "inStock", "stock", "brand"];
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) product[key] = req.body[key];
     }

@@ -8,6 +8,10 @@ const categorySchema = new mongoose.Schema(
       unique: true, // Prevents duplicate names
       trim: true,
     },
+    brands: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

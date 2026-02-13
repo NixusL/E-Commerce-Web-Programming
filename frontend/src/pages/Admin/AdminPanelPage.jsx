@@ -95,6 +95,8 @@ export default function AdminPanelPage() {
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load products");
       setProducts(Array.isArray(data) ? data : []);
+      // ensure categories are loaded so we can map category ids to names
+      loadCategories();
       setSelected(new Set());
     } catch (e) {
       setError(e.message || "Network error");
@@ -687,7 +689,16 @@ export default function AdminPanelPage() {
                         <span className="admin-item-name">{p.name}</span>
                       </div>
                     </div>
-                    <div className="admin-cell">{p.category?.name || "Unknown"}</div>
+                        <div className="admin-cell">
+                          {(() => {
+                            if (typeof p.category === 'object' && p.category) return p.category.name;
+                            if (typeof p.category === 'string') {
+                              const found = categories.find((c) => String(c._id) === String(p.category));
+                              return found ? found.name : 'Unknown';
+                            }
+                            return 'Unknown';
+                          })()}
+                        </div>
                     <div className="admin-cell">{formatPrice(p.price)}</div>
                     <div className="admin-cell">
                       <span className={"admin-pill " + (p.inStock ? "admin-pill--in" : "admin-pill--out")}>

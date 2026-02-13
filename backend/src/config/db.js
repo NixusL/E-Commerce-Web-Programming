@@ -3,10 +3,8 @@ const mongoose = require('mongoose');
 
 async function connectDB() {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      // these options are usually optional in modern Mongoose,
-      // but kept here to be explicit in some setups
-    });
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/ecommerce";
+    const conn = await mongoose.connect(uri, {});
 
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {

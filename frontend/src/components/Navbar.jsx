@@ -73,6 +73,12 @@ export default function Navbar() {
             onClick={logout}
             className="icon-btn"
             title="Logout"
+            style={{
+              fontSize: "0.85rem",
+              transition: "color 0.15s ease-in-out",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#555"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = ""; }}
           >
             Logout
           </button>

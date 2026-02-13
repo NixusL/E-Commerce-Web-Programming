@@ -16,6 +16,8 @@ export default function EditProductPage() {
 
   const [categoryMode, setCategoryMode] = useState("preset"); // preset | custom
   const [customCategory, setCustomCategory] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [brand, setBrand] = useState("");
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -52,19 +54,28 @@ export default function EditProductPage() {
 
         setOwnerId(createdById || null);
 
+        const categoryName =
+          typeof data.category === "object" && data.category !== null
+            ? data.category.name
+            : data.category;
+
         setForm({
           name: data.name || "",
           price: data.price ?? "",
-          category: data.category || "Uncategorized",
+          category: categoryName || "Uncategorized",
+          // preserve brand if present
+          brand: data.brand || "",
           description: data.description || "",
           image: null,
           stock: data.stock ?? "",
           inStock: data.inStock ?? true,
         });
 
-        const preset = CATEGORIES.includes(data.category);
+        setBrand(data.brand || "");
+
+        const preset = CATEGORIES.includes(categoryName);
         setCategoryMode(preset ? "preset" : "custom");
-        setCustomCategory(preset ? "" : data.category || "");
+        setCustomCategory(preset ? "" : categoryName || "");
       } catch {
         setError("Network error");
         pushToast({ type: "error", message: "❌ Network error", canUndo: false });
@@ -74,6 +85,11 @@ export default function EditProductPage() {
     }
 
     load();
+    // fetch categories for brand lists
+    fetch(`${API_BASE}/api/products/categories`)
+      .then((r) => r.json())
+      .then((d) => setCategories(Array.isArray(d) ? d : []))
+      .catch(() => setCategories([]));
   }, [id, navigate]);
 
   const isAdmin = user?.role === "admin";
@@ -89,6 +105,7 @@ export default function EditProductPage() {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
+      if (brand) formData.append("brand", brand);
       formData.append("description", form.description);
       formData.append("stock", form.stock);
       formData.append("inStock", form.inStock);
@@ -209,10 +226,12 @@ export default function EditProductPage() {
                 setCategoryMode("custom");
                 setField("category", "");
                 setCustomCategory("");
+                  setBrand("");
               } else {
                 setCategoryMode("preset");
                 setField("category", v);
                 setCustomCategory("");
+                  setBrand("");
               }
             }}
           >
@@ -238,6 +257,18 @@ export default function EditProductPage() {
               placeholder="e.g. Furniture"
               required
             />
+          </label>
+        )}
+
+        {categoryMode === "preset" && form?.category && (
+          <label className="auth-label">
+            Brand
+            <select className="auth-input" value={brand} onChange={(e)=>setBrand(e.target.value)}>
+              <option value="">Select a brand</option>
+              {(categories.find(c=>c.name===form.category)?.brands || []).map(b=> (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
           </label>
         )}
 

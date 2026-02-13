@@ -20,6 +20,8 @@ export default function ProductsPage() {
   // State for Filters
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [priceRange, setPriceRange] = useState([0, 2000]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({ brand: 'All', category: '', maxPrice: 2000 });
   const [openFilters, setOpenFilters] = useState({
     brand: true,
     memory: false,
@@ -32,10 +34,20 @@ export default function ProductsPage() {
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error('Error fetching products:', err));
+    // fetch categories
+    fetch(`${API_BASE}/api/products/categories`)
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(() => setCategories([]));
   }, []);
 
-  // Get unique brands from products
-  const brands = [...new Set(products.map(p => p.brand))];
+  const [categories, setCategories] = useState([]);
+
+  // Brands available depend on selectedCategory; if none selected, show aggregate of all brands
+  const allBrands = Array.from(new Set((categories.flatMap(c => c.brands || [])).map(b => b))).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
+  const brands = selectedCategory
+    ? (categories.find(c => c.name === selectedCategory)?.brands || [])
+    : allBrands;
 
   // Toggle filter function
   const toggleFilter = (filter) => {
@@ -45,10 +57,22 @@ export default function ProductsPage() {
     }));
   };
 
-  // Filter Logic
-  const filteredProducts = selectedBrand === "All"
-    ? products
-    : products.filter(p => p.brand === selectedBrand);
+  // Filter Logic (appliedFilters are applied when user clicks Apply)
+  const filteredProducts = products.filter(p => {
+    // price
+    if (p.price == null) return false;
+    if (p.price > appliedFilters.maxPrice) return false;
+    // category
+    if (appliedFilters.category) {
+      const catName = typeof p.category === 'object' && p.category ? p.category.name : p.category;
+      if (catName !== appliedFilters.category) return false;
+    }
+    // brand
+    if (appliedFilters.brand && appliedFilters.brand !== 'All') {
+      if ((p.brand || '') !== appliedFilters.brand) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="products-page-container">
@@ -147,13 +171,29 @@ export default function ProductsPage() {
         {/* Header: Counts & Sort */}
         <div className="products-header">
           <div>
-              Selected Products: <strong>{filteredProducts.length}</strong>
-          </div>
-          <select style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d2d2d7', color: '#444' }}>
-            <option>By rating</option>
-            <option>Price: Low to High</option>
-            <option>Price: High to Low</option>
-          </select>
+                Selected Products: <strong>{filteredProducts.length}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select value={selectedCategory} onChange={(e)=> { setSelectedCategory(e.target.value); setSelectedBrand('All'); }} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d2d2d7', color: '#444' }}>
+                <option value="">All categories</option>
+                {categories.map(c=> (<option key={c._id} value={c.name}>{c.name}</option>))}
+              </select>
+              <select style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d2d2d7', color: '#444' }}>
+                <option>By rating</option>
+                <option>Price: Low to High</option>
+                <option>Price: High to Low</option>
+              </select>
+            </div>
+        </div>
+
+        {/* Apply Filters button */}
+        <div style={{ margin: '12px 0', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button className="btn-secondary" onClick={() => { setSelectedBrand('All'); setSelectedCategory(''); setPriceRange([0,2000]); setAppliedFilters({ brand: 'All', category: '', maxPrice: 2000 }); }}>
+            Reset
+          </button>
+          <button className="auth-primary-button" onClick={() => setAppliedFilters({ brand: selectedBrand, category: selectedCategory, maxPrice: priceRange[1] })}>
+            Apply Filters
+          </button>
         </div>
 
         {/* The Grid */}
