@@ -276,7 +276,7 @@ async function adminBackfillSellerRequests(req, res) {
 async function adminApproveSellerRequest(req, res) {
   try {
     const { id } = req.params;
-    
+
     const sellerRequest = await SellerRequest.findById(id).populate('user');
     if (!sellerRequest) {
       return res.status(404).json({ message: 'Seller request not found' });
@@ -313,10 +313,10 @@ async function adminApproveSellerRequest(req, res) {
     } catch (e) {
       console.error('Failed to update User after approving seller request:', e);
     }
-    res.json({ 
-      message: 'Seller request approved', 
+    res.json({
+      message: 'Seller request approved',
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
-      request: sellerRequest 
+      request: sellerRequest
     });
   } catch (error) {
     console.error('Error approving seller request:', error);
@@ -328,7 +328,7 @@ async function adminApproveSellerRequest(req, res) {
 async function adminRejectSellerRequest(req, res) {
   try {
     const { id } = req.params;
-    
+
     const sellerRequest = await SellerRequest.findById(id);
     if (!sellerRequest) {
       return res.status(404).json({ message: 'Seller request not found' });
@@ -368,7 +368,9 @@ async function adminRejectSellerRequest(req, res) {
 // GET /api/admin/refunds
 async function adminListRefunds(req, res) {
   try {
-    const refunds = await Order.find({ refundStatus: { $ne: 'none' } })
+    const refunds = await Order.find({
+      refundStatus: { $in: ["seller_approved", "refunded", "rejected"] },
+    })
       .populate('customer', 'name email')
       .populate('items.product', 'name')
       .sort({ createdAt: -1 });

@@ -58,7 +58,7 @@ router.post("/bypass", auth, authorize("customer", "admin"), createOrderBypass);
 router.get(
   "/refunds/pending",
   auth,
-  authorize("seller", "admin"),
+  authorize("seller"),
   getSellerPendingRefunds
 );
 
@@ -66,7 +66,7 @@ router.get(
 router.post(
   "/:id/refund/seller-approve",
   auth,
-  authorize("seller", "admin"),
+  authorize("seller"),
   sellerApproveRefund
 );
 

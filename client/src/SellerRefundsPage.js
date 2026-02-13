@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { prettyRefundStatus } from "./utils/refundStatus";
 
 const API_BASE = "http://localhost:5000";
 
@@ -142,7 +143,7 @@ export default function SellerRefundsPage() {
                         textTransform: "capitalize",
                       }}
                     >
-                      Refund: {o.refundStatus}
+                      Refund: {prettyRefundStatus(o.refundStatus)}
                     </span>
                   </div>
                 </div>

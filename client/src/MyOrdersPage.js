@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { prettyRefundStatus } from "./utils/refundStatus";
 
 const API_BASE = "http://localhost:5000";
 
@@ -38,7 +39,7 @@ function refundStyle(refundStatus) {
   if (s === "pending") {
     return { border: "#f59e0b", text: "#fbbf24", bg: "rgba(245, 158, 11, 0.12)" };
   }
-  if (s === "approved") {
+  if (s === "seller_approved") {
     return { border: "#60a5fa", text: "#bfdbfe", bg: "rgba(96, 165, 250, 0.12)" };
   }
   if (s === "refunded") {
@@ -212,7 +213,7 @@ export default function MyOrdersPage({ showToast }) {
 
                       {o.refundStatus && o.refundStatus !== "none" && (
                         <span className={`refund-badge ${refundClass}`}>
-                          Refund: {o.refundStatus}
+                          Refund: {prettyRefundStatus(o.refundStatus)}
                         </span>
                       )}
                     </div>

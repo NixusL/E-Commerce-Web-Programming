@@ -393,18 +393,17 @@ async function sellerApproveRefund(req, res) {
       return res.status(400).json({ message: "Refund not pending" });
     }
 
-    // Check authorization: seller must own at least one product in order
-    if (req.user.role !== "admin") {
-      const ownsProduct = order.items.some(
-        (i) => i.product?.createdBy?.toString() === req.user._id.toString()
-      );
+    // Seller must own at least one product in the order
+    const ownsProduct = order.items.some(
+      (i) => i.product?.createdBy?.toString() === req.user._id.toString()
+    );
 
-      if (!ownsProduct) {
-        return res.status(403).json({ message: "Not authorized to approve this refund" });
-      }
+    if (!ownsProduct) {
+      return res.status(403).json({ message: "Not authorized to approve this refund" });
     }
 
-    order.refundStatus = "approved";
+    // Step 2 completed by seller
+    order.refundStatus = "seller_approved";
     await order.save();
 
     res.json({ message: "Refund approved", order });
@@ -419,8 +418,8 @@ async function processRefund(req, res) {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (order.refundStatus !== "approved") {
-      return res.status(400).json({ message: "Refund not approved" });
+    if (order.refundStatus !== "seller_approved") {
+      return res.status(400).json({ message: "Refund not approved by seller yet" });
     }
 
     // If there's a Stripe payment intent, try to refund via Stripe.

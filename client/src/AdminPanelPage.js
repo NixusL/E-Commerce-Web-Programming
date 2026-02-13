@@ -7,6 +7,7 @@ import {
   FaTags,
   FaUndo,
 } from "react-icons/fa";
+import { prettyRefundStatus } from "./utils/refundStatus";
 
 const API_BASE = "http://localhost:5000";
 
@@ -504,7 +505,7 @@ export default function AdminPanelPage() {
   /* =============== REFUND ACTIONS =============== */
 
   // Step 2: approve refund (seller/admin route)
-  async function approveRefundStep2(orderId) {
+  /* async function approveRefundStep2(orderId) {
     try {
       setLoading(true);
       setError("");
@@ -522,7 +523,7 @@ export default function AdminPanelPage() {
     } finally {
       setLoading(false);
     }
-  }
+  } */
 
   // Step 3: process refund (admin route)
   async function processRefundStep3(orderId) {
@@ -1040,24 +1041,22 @@ export default function AdminPanelPage() {
                     <div className="admin-cell">{customerName || "Unknown"}</div>
                     <div className="admin-cell">{formatPrice(o.total)}</div>
                     <div className="admin-cell">
-                      <span className={"admin-pill " + (rs === "pending" ? "admin-pill--warn" : rs === "approved" ? "" : "admin-pill--in")}>
-                        {o.refundStatus}
+                      <span
+                        className={
+                          "admin-pill " +
+                          (rs === "seller_approved"
+                            ? ""
+                            : rs === "pending"
+                              ? "admin-pill--warn"
+                              : "admin-pill--in")
+                        }
+                      >
+                        {prettyRefundStatus(o.refundStatus)}
                       </span>
                     </div>
                     <div className="admin-cell">{formatDate(o.createdAt)}</div>
                     <div className="admin-cell">
-                      {rs === "pending" && (
-                        <button
-                          className="btn-secondary"
-                          type="button"
-                          disabled={loading}
-                          onClick={() => approveRefundStep2(o._id)}
-                        >
-                          Approve (Step 2)
-                        </button>
-                      )}
-
-                      {rs === "approved" && (
+                      {rs === "seller_approved" && (
                         <button
                           className="btn-secondary"
                           type="button"
@@ -1065,6 +1064,12 @@ export default function AdminPanelPage() {
                           onClick={() => processRefundStep3(o._id)}
                         >
                           Process Refund (Step 3)
+                        </button>
+                      )}
+
+                      {rs === "pending" && (
+                        <button className="btn-secondary btn-disabled" type="button" disabled>
+                          Waiting on seller
                         </button>
                       )}
 

@@ -153,60 +153,71 @@ export default function App() {
         <NavLink to="/" className="logo">cyber</NavLink>
 
         <div className="search-bar-container">
-           <FiSearch style={{position:'absolute', left: '12px', top:'50%', transform:'translateY(-50%)', color:'#999', fontSize: '1.2rem'}} />
-           <input type="text" placeholder="Search" className="search-input" />
+          <FiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', fontSize: '1.2rem' }} />
+          <input type="text" placeholder="Search" className="search-input" />
         </div>
 
         <nav className="nav-links">
-          <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Home</NavLink>
-          <NavLink to="/products" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>Products</NavLink>
+          <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Home</NavLink>
+          <NavLink to="/products" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Products</NavLink>
 
           {/* My Orders Link (Only visible when logged in) */}
           {user && (
-            <NavLink to="/my-orders" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>My Orders</NavLink>
+            <NavLink to="/my-orders" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>My Orders</NavLink>
           )}
 
           {/* Admin Link (Only visible to admin) */}
           {user?.role === "admin" && (
-            <NavLink to="/admin" className="nav-link" style={{color: '#facc15'}}>Admin</NavLink>
+            <NavLink to="/admin" className="nav-link" style={{ color: '#facc15' }}>Admin</NavLink>
           )}
 
           {/* My Products Link (Only visible to seller or admin) */}
           {(user?.role === "seller" || user?.role === "admin") && (
-            <NavLink to="/my-products" className="nav-link" style={{color: '#facc15'}}>My Products</NavLink>
+            <NavLink to="/my-products" className="nav-link" style={{ color: '#facc15' }}>My Products</NavLink>
+          )}
+
+          {/* Seller Refunds Link */}
+          {user?.role === "seller" && (
+            <NavLink
+              to="/seller-refunds"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              style={{ color: "#facc15" }}
+            >
+              Refund Requests
+            </NavLink>
           )}
         </nav>
 
         <div className="nav-icons">
-           {/* Wishlist (Static for now) */}
-           <button className="icon-btn"><FiHeart /></button>
-           
-           {/* Cart */}
-           <button className="icon-btn" onClick={() => navigate("/cart")}>
-             <FiShoppingCart />
-             {cartCount > 0 && <span style={{fontSize:'0.8rem', marginLeft:'4px', fontWeight: 'bold'}}>({cartCount})</span>}
-           </button>
-           
-           {/* User / Login */}
-           {user ? (
-             <button className="icon-btn" onClick={() => navigate("/my-orders")} title={user.name}>
-               <FiUser />
-             </button>
-           ) : (
-             <button className="icon-btn" onClick={() => navigate("/login")}>
-               <FiUser />
-             </button>
-           )}
-           
-           {/* Logout Button (Small) */}
-           {user && (
-             <button 
-                onClick={logout} 
-                style={{fontSize:'0.8rem', background:'none', border:'1px solid #ddd', borderRadius:'4px', padding:'2px 8px', cursor:'pointer'}}
-             >
-               Logout
-             </button>
-           )}
+          {/* Wishlist (Static for now) */}
+          <button className="icon-btn"><FiHeart /></button>
+
+          {/* Cart */}
+          <button className="icon-btn" onClick={() => navigate("/cart")}>
+            <FiShoppingCart />
+            {cartCount > 0 && <span style={{ fontSize: '0.8rem', marginLeft: '4px', fontWeight: 'bold' }}>({cartCount})</span>}
+          </button>
+
+          {/* User / Login */}
+          {user ? (
+            <button className="icon-btn" onClick={() => navigate("/my-orders")} title={user.name}>
+              <FiUser />
+            </button>
+          ) : (
+            <button className="icon-btn" onClick={() => navigate("/login")}>
+              <FiUser />
+            </button>
+          )}
+
+          {/* Logout Button (Small) */}
+          {user && (
+            <button
+              onClick={logout}
+              style={{ fontSize: '0.8rem', background: 'none', border: '1px solid #ddd', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}
+            >
+              Logout
+            </button>
+          )}
         </div>
       </header>
 
@@ -233,7 +244,7 @@ export default function App() {
 
           <Route path="/report/:id" element={<ReportProductPage />} />
           <Route path="/admin" element={<AdminPanelPage />} />
-          
+
 
         </Routes>
       </main>
@@ -243,32 +254,32 @@ export default function App() {
       {/* --- CYBER FOOTER --- */}
       <footer className="footer-cyber">
         <div className="footer-content">
-           <div className="footer-col">
-             <span className="logo footer-logo" style={{color:'white'}}>cyber</span>
-             <p className="footer-desc">We are a residential interior design firm located in Portland. Our boutique-studio offers more than</p>
-           </div>
-           <div className="footer-col">
-             <h4>Services</h4>
-             <a href="#">Bonus program</a>
-             <a href="#">Gift cards</a>
-             <a href="#">Credit and payment</a>
-             <a href="#">Service contracts</a>
-           </div>
-           <div className="footer-col">
-             <h4>Assistance to the buyer</h4>
-             <a href="#">Find an order</a>
-             <a href="#">Terms of delivery</a>
-             <a href="#">Exchange and return of goods</a>
-             <a href="#">Guarantee</a>
-           </div>
-           <div className="footer-col">
-             <h4>Socials</h4>
-             <div style={{display:'flex', gap:'1rem'}}>
-               <a href="#">Twitter</a>
-               <a href="#">Instagram</a>
-               <a href="#">Facebook</a>
-             </div>
-           </div>
+          <div className="footer-col">
+            <span className="logo footer-logo" style={{ color: 'white' }}>cyber</span>
+            <p className="footer-desc">We are a residential interior design firm located in Portland. Our boutique-studio offers more than</p>
+          </div>
+          <div className="footer-col">
+            <h4>Services</h4>
+            <a href="#">Bonus program</a>
+            <a href="#">Gift cards</a>
+            <a href="#">Credit and payment</a>
+            <a href="#">Service contracts</a>
+          </div>
+          <div className="footer-col">
+            <h4>Assistance to the buyer</h4>
+            <a href="#">Find an order</a>
+            <a href="#">Terms of delivery</a>
+            <a href="#">Exchange and return of goods</a>
+            <a href="#">Guarantee</a>
+          </div>
+          <div className="footer-col">
+            <h4>Socials</h4>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <a href="#">Twitter</a>
+              <a href="#">Instagram</a>
+              <a href="#">Facebook</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

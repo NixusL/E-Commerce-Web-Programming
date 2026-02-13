@@ -59,8 +59,10 @@ const orderSchema = new mongoose.Schema(
 
     refundStatus: {
       type: String,
-      // align with controller values: 'pending' (customer requested), 'approved' (seller/admin approved), 'refunded', 'rejected'
-      enum: ["none", "pending", "approved", "refunded", "rejected"],
+      // pending = customer requested
+      // seller_approved = seller approved (now visible to admin)
+      // refunded/rejected = final states
+      enum: ["none", "pending", "seller_approved", "refunded", "rejected"],
       default: "none",
     },
 
