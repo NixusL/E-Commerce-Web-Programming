@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiCheckCircle, FiShoppingBag, FiArrowRight } from "react-icons/fi";
-import { API_BASE, getToken } from "../../services/apiClient";
+import { API_BASE, getCurrentUser } from "../../services/apiClient";
 
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
@@ -12,8 +12,8 @@ export default function CheckoutSuccessPage() {
 
   useEffect(() => {
     const doCheck = async () => {
-      const token = getToken();
-      if (!token) {
+      const me = await getCurrentUser();
+      if (!me) {
         navigate("/login");
         return;
       }
@@ -24,8 +24,8 @@ export default function CheckoutSuccessPage() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
+            credentials: "include",
             body: JSON.stringify({ sessionId }),
           });
 
@@ -33,7 +33,7 @@ export default function CheckoutSuccessPage() {
           if (res.ok && data.order) setLatestOrder(data.order);
         } else {
           const res = await fetch(`${API_BASE}/api/orders/my`, {
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: "include",
           });
           const data = await res.json().catch(() => ([]));
           if (Array.isArray(data) && data.length > 0) setLatestOrder(data[0]);

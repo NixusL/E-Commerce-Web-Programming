@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
-import { API_BASE, getToken, pushToast } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 function formatPrice(amount) {
   const n = Number(amount);
@@ -21,7 +21,6 @@ function formatDate(iso) {
 
 export default function MyProductsPage() {
   const navigate = useNavigate();
-  const token = getToken();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,16 +32,22 @@ export default function MyProductsPage() {
   }, []);
 
   async function loadMyProducts() {
-    if (!token) {
+    const me = await getCurrentUser();
+    if (!me) {
       pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
       navigate("/login");
+      return;
+    }
+    if (!(me.role === "seller" || me.role === "admin")) {
+      pushToast({ type: "error", message: "❌ Only sellers/admin can view this page", canUndo: false });
+      navigate("/");
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/products/my`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load products");
@@ -63,7 +68,7 @@ export default function MyProductsPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/products/${productId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to delete product");

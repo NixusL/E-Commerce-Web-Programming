@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { API_BASE } from "../../services/apiClient";
+import { registerRequest } from "../../services/apiClient";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -33,30 +33,19 @@ function RegisterPage() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
+      // This will set the HttpOnly cookie on success
+      await registerRequest({ name, email, password });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.message || "Registration failed.");
-        return;
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-
-      // notify navbar/app that auth changed
+      // notify navbar/app that auth changed so it can refetch /api/auth/me
       window.dispatchEvent(new Event("authchange"));
 
       navigate("/");
-    } catch {
-      setError("Network error. Is the backend running on port 5000?");
+    } catch (err) {
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        "Registration failed.";
+      setError(msg);
     } finally {
       setLoading(false);
     }

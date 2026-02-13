@@ -4,13 +4,12 @@ const User = require("../models/User");
 
 module.exports = async function auth(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
+    // Support token from HttpOnly cookie (preferred) or Authorization header (fallback)
+    const token = (req.cookies && req.cookies.token) || (req.headers.authorization && req.headers.authorization.startsWith("Bearer ") && req.headers.authorization.split(" ")[1]);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       return res.status(401).json({ message: "No token, authorization denied" });
     }
-
-    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const userId = decoded.id || decoded._id || decoded.userId;

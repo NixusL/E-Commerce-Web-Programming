@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaFlag } from "react-icons/fa";
-import { API_BASE, getToken } from "../../services/apiClient";
+import { API_BASE, getCurrentUser } from "../../services/apiClient";
 
 export default function ReportProductPage({ showToast }) {
     const { id } = useParams();
     const navigate = useNavigate();
-    const token = getToken();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,9 +16,10 @@ export default function ReportProductPage({ showToast }) {
 
     useEffect(() => {
         const doLoad = async () => {
-            if (!token) {
+            const me = await getCurrentUser();
+            if (!me) {
                 showToast?.("❌ Please log in to report products", "error");
-                navigate("/");
+                navigate("/login");
                 return;
             }
             try {
@@ -37,7 +37,7 @@ export default function ReportProductPage({ showToast }) {
         };
 
         doLoad();
-    }, [id, token, navigate, showToast]);
+    }, [id, navigate, showToast]);
 
     // loadProduct inlined into useEffect
 
@@ -55,6 +55,13 @@ export default function ReportProductPage({ showToast }) {
         }
 
         try {
+            const me = await getCurrentUser();
+            if (!me) {
+                showToast?.("❌ Please log in to report products", "error");
+                navigate("/login");
+                return;
+            }
+
             setSubmitting(true);
             setError("");
 
@@ -67,8 +74,8 @@ export default function ReportProductPage({ showToast }) {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
+                credentials: "include",
                 body: JSON.stringify(body),
             });
 

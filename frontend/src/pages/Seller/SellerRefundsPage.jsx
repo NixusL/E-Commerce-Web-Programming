@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { prettyRefundStatus } from "../../utils/refundStatus";
-import { API_BASE, getToken, readStoredUser, pushToast } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 function formatDate(iso) {
   try {
@@ -12,33 +12,34 @@ function formatDate(iso) {
 }
 
 // use pushToast from services/apiClient
-
+//
 export default function SellerRefundsPage() {
   const navigate = useNavigate();
-  const token = getToken();
-  const user = readStoredUser();
+  const [user, setUser] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [orders, setOrders] = useState([]);
 
   async function load() {
-    if (!token || !user) {
+    const me = await getCurrentUser();
+    if (!me) {
       navigate("/login");
       return;
     }
-    if (!(user.role === "seller" || user.role === "admin")) {
+    if (!(me.role === "seller" || me.role === "admin")) {
       pushToast({ type: "error", message: "❌ Only sellers/admin can view this page", canUndo: false });
       navigate("/");
       return;
     }
+    setUser(me);
 
     try {
       setLoading(true);
       setError("");
 
       const res = await fetch(`${API_BASE}/api/orders/refunds/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load pending refunds");
@@ -63,7 +64,7 @@ export default function SellerRefundsPage() {
 
       const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund/seller-approve`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => ({}));

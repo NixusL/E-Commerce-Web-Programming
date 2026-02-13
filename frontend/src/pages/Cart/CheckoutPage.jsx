@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMapPin, FiTruck, FiCreditCard, FiEdit2, FiX, FiPlus, FiChevronDown } from "react-icons/fi";
 import { useCart } from "../../context/CartContext";
-import { API_BASE } from "../../services/apiClient";
+import { API_BASE, getCurrentUser } from "../../services/apiClient";
 
 // Addresses will be managed dynamically
 
@@ -54,15 +54,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) {
-          return;
-        }
+        const me = await getCurrentUser();
+        if (!me) return;
 
         const res = await fetch(`${API_BASE}/api/users/addresses`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (res.ok) {
@@ -153,8 +149,8 @@ export default function CheckoutPage() {
 
       // For testing, create order using bypass endpoint
       try {
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) {
+        const me = await getCurrentUser();
+        if (!me) {
           alert("Please log in to complete purchase");
           navigate("/login");
           return;
@@ -164,8 +160,8 @@ export default function CheckoutPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include",
         });
 
         const data = await res.json();
@@ -201,17 +197,9 @@ export default function CheckoutPage() {
 
   const deleteAddress = async (id) => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to delete address");
-        return;
-      }
-
       const res = await fetch(`${API_BASE}/api/users/addresses/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -229,20 +217,14 @@ export default function CheckoutPage() {
 
   const saveAddress = async () => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to save address");
-        return;
-      }
-
       if (editingId) {
         // Update existing address
         const res = await fetch(`${API_BASE}/api/users/addresses/${editingId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include",
           body: JSON.stringify(addressForm),
         });
 
@@ -262,8 +244,8 @@ export default function CheckoutPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include",
           body: JSON.stringify(addressForm),
         });
 

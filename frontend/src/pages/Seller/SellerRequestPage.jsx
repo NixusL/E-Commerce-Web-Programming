@@ -1,23 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiShield, FiBox, FiUsers, FiTrendingUp } from "react-icons/fi";
-import { API_BASE, getToken, readStoredUser, pushToast } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 export default function SellerRequestPage() {
   const navigate = useNavigate();
-  const token = getToken();
-  const user = readStoredUser();
+  const [user, setUser] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token || !user) navigate("/login");
-    if (user?.role === "seller" || user?.role === "admin") navigate("/");
-    
-    // Check if seller request has already been sent
-    checkSellerRequestStatus();
+    async function init() {
+      const me = await getCurrentUser();
+      if (!me) {
+        navigate("/login");
+        return;
+      }
+      if (me.role === "seller" || me.role === "admin") {
+        navigate("/");
+        return;
+      }
+      setUser(me);
+      // Check if seller request has already been sent
+      checkSellerRequestStatus();
+    }
+
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -25,7 +35,7 @@ export default function SellerRequestPage() {
     try {
       const res = await fetch(`${API_BASE}/api/users/seller-request/status`, {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       
@@ -46,7 +56,7 @@ export default function SellerRequestPage() {
 
       const res = await fetch(`${API_BASE}/api/users/become-seller`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => ({}));

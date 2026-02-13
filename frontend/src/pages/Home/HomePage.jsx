@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
 import Modal from "../../components/Modal";
+import { API_BASE } from "../../services/apiClient";
 
 
 
@@ -19,14 +20,15 @@ export default function HomePage() {
 
   // Fetch products on mount and set new arrivals
   useEffect(() => {
-    fetch('/api/products')
+    fetch(`${API_BASE}/api/products`)
       .then(res => res.json())
       .then(data => {
+        if (!Array.isArray(data)) return;
         // Take first 8 products as new arrivals
         setNewArrivals(data.slice(0, 8));
       })
       .catch(err => {
-        console.error('Error fetching products:', err);
+        console.error("Error fetching products:", err);
       });
   }, []);
 

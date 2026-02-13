@@ -7,7 +7,7 @@ import {
   FaUndo,
 } from "react-icons/fa";
 import { prettyRefundStatus } from "../../utils/refundStatus";
-import { API_BASE, getToken, pushToast } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 function formatPrice(amount) {
   const n = Number(amount);
@@ -26,8 +26,6 @@ function formatDate(iso) {
 // using pushToast from services/apiClient
 
 export default function AdminPanelPage() {
-  const token = getToken();
-
   const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories | sellerRequests | refunds
 
   const [loading, setLoading] = useState(false);
@@ -83,15 +81,16 @@ export default function AdminPanelPage() {
   /* =============== LOADERS =============== */
 
   async function loadProducts() {
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/products`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load products");
@@ -106,15 +105,16 @@ export default function AdminPanelPage() {
   }
 
   async function loadOrders() {
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load orders");
@@ -128,15 +128,16 @@ export default function AdminPanelPage() {
   }
 
   async function loadCategories() {
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load categories");
@@ -150,15 +151,16 @@ export default function AdminPanelPage() {
   }
 
   async function loadSellerRequests() {
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/seller-requests`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load seller requests");
@@ -172,15 +174,16 @@ export default function AdminPanelPage() {
   }
 
   async function loadRefundRequests() {
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/refunds`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load refund requests");
@@ -263,8 +266,8 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ ids }),
       });
       const data = await res.json().catch(() => ({}));
@@ -289,8 +292,8 @@ export default function AdminPanelPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ status }),
       });
       const data = await res.json().catch(() => ({}));
@@ -313,7 +316,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to delete order");
@@ -331,10 +334,6 @@ export default function AdminPanelPage() {
 
   async function createAdminUser(e) {
     e.preventDefault();
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
-      return;
-    }
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
       pushToast({ type: "error", message: "❌ Fill in name, email, and password", canUndo: false });
       return;
@@ -346,8 +345,8 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(newAdmin),
       });
       const data = await res.json().catch(() => ({}));
@@ -365,10 +364,6 @@ export default function AdminPanelPage() {
 
   async function createSellerUser(e) {
     e.preventDefault();
-    if (!token) {
-      pushToast({ type: "error", message: "❌ Not logged in", canUndo: false });
-      return;
-    }
     if (!newSeller.name || !newSeller.email || !newSeller.password) {
       pushToast({ type: "error", message: "❌ Fill in name, email, and password", canUndo: false });
       return;
@@ -380,8 +375,8 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(newSeller),
       });
       const data = await res.json().catch(() => ({}));
@@ -412,8 +407,8 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ name: newCategory.trim() }),
       });
       const data = await res.json().catch(() => ({}));
@@ -437,7 +432,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/categories/${categoryId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to delete category");
@@ -459,7 +454,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/seller-requests/${id}/approve`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to approve");
@@ -479,7 +474,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/admin/seller-requests/${id}/reject`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to reject");
@@ -502,7 +497,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund/seller-approve`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to approve refund");
@@ -523,7 +518,7 @@ export default function AdminPanelPage() {
       setError("");
       const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to process refund");

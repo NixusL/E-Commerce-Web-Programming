@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { API_BASE } from "../../services/apiClient";
+import { loginRequest } from "../../services/apiClient";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -24,38 +24,19 @@ function LoginPage() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // This will set the HttpOnly cookie on success
+      await loginRequest({ email, password });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        // backend likely returns: { message: "Invalid credentials" }
-        setError(data?.message || "Invalid email or password.");
-        return;
-      }
-
-      if (remember) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
-      } else {
-        sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      }
-
-      // notify navbar/app that auth changed
+      // Notify navbar/app that auth changed – it will refetch /api/auth/me
       window.dispatchEvent(new Event("authchange"));
 
       navigate("/");
-    } catch {
-      setError("Network error. Is the backend running on port 5001?");
+    } catch (err) {
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        "Invalid email or password.";
+      setError(msg);
     } finally {
       setLoading(false);
     }

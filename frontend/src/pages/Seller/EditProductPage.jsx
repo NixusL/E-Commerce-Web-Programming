@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CATEGORIES } from "../../constants/categories";
-import { API_BASE, getToken, pushToast, readStoredUser } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 export default function EditProductPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const token = getToken();
-  const user = readStoredUser();
+  const [user, setUser] = useState(null);
 
   const [form, setForm] = useState(null);
   const [ownerId, setOwnerId] = useState(null);
@@ -24,10 +23,12 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function load() {
-      if (!token) {
+      const me = await getCurrentUser();
+      if (!me) {
         navigate("/login");
         return;
       }
+      setUser(me);
 
       try {
         setLoading(true);
@@ -73,7 +74,7 @@ export default function EditProductPage() {
     }
 
     load();
-  }, [id, token, navigate]);
+  }, [id, navigate]);
 
   const isAdmin = user?.role === "admin";
   const isOwner = ownerId && user?.id && String(ownerId) === String(user.id);
@@ -95,7 +96,7 @@ export default function EditProductPage() {
 
       const res = await fetch(`${API_BASE}/api/products/${id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
         body: formData,
       });
 
@@ -132,7 +133,7 @@ export default function EditProductPage() {
     try {
       const res = await fetch(`${API_BASE}/api/products/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!res.ok) {

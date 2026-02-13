@@ -2,29 +2,24 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FiSearch, FiHeart, FiShoppingCart, FiUser } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
-import { readStoredUser } from "../services/apiClient";
+import { getCurrentUser, logoutRequest } from "../services/apiClient";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const { cartCount } = useCart();
 
-  const [user, setUser] = useState(readStoredUser());
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    function syncAuth() { setUser(readStoredUser()); }
-    window.addEventListener("authchange", syncAuth);
-    window.addEventListener("storage", syncAuth);
-    return () => {
-      window.removeEventListener("authchange", syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
+    let mounted = true;
+    getCurrentUser().then(u => { if (mounted) setUser(u); });
+    function onAuthChange() { getCurrentUser().then(u => { if (mounted) setUser(u); }); }
+    window.addEventListener("authchange", onAuthChange);
+    return () => { mounted = false; window.removeEventListener("authchange", onAuthChange); };
   }, []);
 
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
+  async function logout() {
+    await logoutRequest();
     window.dispatchEvent(new Event("authchange"));
     navigate("/login");
   }
@@ -73,7 +68,14 @@ export default function Navbar() {
         )}
 
         {user && (
-          <button onClick={logout} style={{ fontSize: '0.8rem', background: 'none', border: '1px solid #ddd', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>Logout</button>
+          <button
+            type="button"
+            onClick={logout}
+            className="icon-btn"
+            title="Logout"
+          >
+            Logout
+          </button>
         )}
       </div>
     </header>

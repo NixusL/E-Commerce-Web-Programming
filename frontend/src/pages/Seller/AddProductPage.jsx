@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE, getToken, pushToast, readStoredUser } from "../../services/apiClient";
+import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 
 export default function AddProductPage() {
   const navigate = useNavigate();
-  const token = getToken();
-  const userRole = readStoredUser()?.role;
 
   const [form, setForm] = useState({
     name: "",
@@ -19,6 +17,33 @@ export default function AddProductPage() {
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    // Check auth & role using cookie-based session
+    async function checkAuth() {
+      const me = await getCurrentUser();
+      if (!me) {
+        navigate("/login");
+        return;
+      }
+      if (me.role !== "seller" && me.role !== "admin") {
+        pushToast({
+          type: "error",
+          message: "❌ Only sellers and admins can create products",
+          canUndo: false,
+        });
+        navigate("/");
+        return;
+      }
+      setUserRole(me.role);
+      setAuthChecked(true);
+    }
+
+    checkAuth();
+  }, [navigate]);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -42,16 +67,6 @@ export default function AddProductPage() {
 
     fetchCategories();
   }, []);
-
-  if (!token) {
-    navigate("/login");
-    return null;
-  }
-
-  if (userRole !== "seller" && userRole !== "admin") {
-    navigate("/");
-    return null;
-  }
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -82,7 +97,7 @@ export default function AddProductPage() {
 
       const res = await fetch(`${API_BASE}/api/products`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
         body: formData,
       });
 

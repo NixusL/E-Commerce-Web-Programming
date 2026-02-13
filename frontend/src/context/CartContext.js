@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { API_BASE, getToken } from "../services/apiClient";
+import { API_BASE } from "../services/apiClient";
 
 const CartContext = createContext(null);
 
@@ -34,21 +34,13 @@ export function CartProvider({ children }) {
   // avoid overlapping refresh calls
   const refreshingRef = useRef(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshCart = useCallback(async () => {
-    const token = getToken();
-    if (!token) {
-      setItems([]);
-      setHydrated(true);
-      return;
-    }
-
     if (refreshingRef.current) return;
     refreshingRef.current = true;
 
     try {
       const res = await fetch(`${API_BASE}/api/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -77,13 +69,10 @@ export function CartProvider({ children }) {
     }
 
     window.addEventListener("authchange", onAuthChange);
-    window.addEventListener("storage", onAuthChange);
 
     return () => {
       window.removeEventListener("authchange", onAuthChange);
-      window.removeEventListener("storage", onAuthChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Define cart mutation helpers inside useMemo to avoid cross-hook dependency issues
@@ -91,9 +80,6 @@ export function CartProvider({ children }) {
   const api = useMemo(() => {
     // Define functions here so they capture the latest refreshCart reference
     async function addToCart(product, qty = 1) {
-      const token = getToken();
-      if (!token) throw new Error("You must be logged in to add to cart");
-
       const id = product?._id || product?.id || product?.productId;
       if (!id) throw new Error("Missing product id");
 
@@ -104,8 +90,8 @@ export function CartProvider({ children }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ productId: id, qty: safeQty }),
       });
 
@@ -119,13 +105,11 @@ export function CartProvider({ children }) {
     }
 
     async function removeFromCart(productId) {
-      const token = getToken();
-      if (!token) throw new Error("You must be logged in to modify cart");
       if (!productId) return;
 
       const res = await fetch(`${API_BASE}/api/cart/remove/${productId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -138,9 +122,6 @@ export function CartProvider({ children }) {
     }
 
     async function setQty(productId, newQty) {
-      const token = getToken();
-      if (!token) throw new Error("You must be logged in to modify cart");
-
       const n = Number(newQty);
       if (!Number.isFinite(n)) return;
 
@@ -151,7 +132,7 @@ export function CartProvider({ children }) {
 
       const removeRes = await fetch(`${API_BASE}/api/cart/remove/${productId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!removeRes.ok) {
@@ -163,8 +144,8 @@ export function CartProvider({ children }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ productId, qty: n }),
       });
 
@@ -178,12 +159,9 @@ export function CartProvider({ children }) {
     }
 
     async function clearCart() {
-      const token = getToken();
-      if (!token) throw new Error("You must be logged in to modify cart");
-
       const res = await fetch(`${API_BASE}/api/cart/clear`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!res.ok) {

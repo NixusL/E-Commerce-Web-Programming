@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 const dotenv = require("dotenv");
 
@@ -23,7 +24,12 @@ const auth = require("./middleware/auth");
 
 const app = express();
 
-app.use(cors());
+// Allow cross-origin requests from frontend and include credentials for cookies
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 // Static files

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { prettyRefundStatus } from "../../utils/refundStatus";
-import { API_BASE, getToken } from "../../services/apiClient";
+import { API_BASE, getCurrentUser } from "../../services/apiClient";
 
 // (statusStyle and refundStyle removed — not used)
 
@@ -13,8 +13,8 @@ export default function MyOrdersPage({ showToast }) {
   const [error, setError] = useState("");
 
   async function loadOrders() {
-    const token = getToken();
-    if (!token) {
+    const me = await getCurrentUser();
+    if (!me) {
       navigate("/login");
       return;
     }
@@ -24,7 +24,7 @@ export default function MyOrdersPage({ showToast }) {
       setError("");
 
       const res = await fetch(`${API_BASE}/api/orders/my`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => ({}));
@@ -48,8 +48,8 @@ export default function MyOrdersPage({ showToast }) {
   }, []);
 
   async function cancelOrder(orderId) {
-    const token = getToken();
-    if (!token) {
+    const me = await getCurrentUser();
+    if (!me) {
       navigate("/login");
       return;
     }
@@ -57,7 +57,7 @@ export default function MyOrdersPage({ showToast }) {
     try {
       const res = await fetch(`${API_BASE}/api/orders/${orderId}/cancel`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => ({}));
@@ -80,8 +80,8 @@ export default function MyOrdersPage({ showToast }) {
   }
 
   async function requestRefund(orderId) {
-    const token = getToken();
-    if (!token) {
+    const me = await getCurrentUser();
+    if (!me) {
       navigate("/login");
       return;
     }
@@ -89,7 +89,7 @@ export default function MyOrdersPage({ showToast }) {
     try {
       const res = await fetch(`${API_BASE}/api/orders/${orderId}/refund/request`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => ({}));

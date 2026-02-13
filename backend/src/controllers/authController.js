@@ -14,40 +14,56 @@ function signToken(user) {
 // POST /api/auth/register
 // MVP choice: register as CUSTOMER only
 async function register(req, res) {
-    try {
-        const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: "name, email, password are required" });
-        }
-        if (password.length < 6) {
-            return res.status(400).json({ message: "password must be at least 6 characters" });
-        }
-
-        const existing = await User.findOne({ email: email.toLowerCase() });
-        if (existing) {
-            return res.status(409).json({ message: "Email is already registered" });
-        }
-
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const user = await User.create({
-            name,
-            email: email.toLowerCase(),
-            passwordHash,
-            role: "customer",
-        });
-
-        const token = signToken(user);
-
-        res.status(201).json({
-            token,
-            user: { id: user._id, name: user.name, email: user.email, role: user.role },
-        });
-    } catch (err) {
-        console.error("Register error:", err);
-        res.status(500).json({ message: "Server error" });
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ message: "name, email, password are required" });
     }
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "password must be at least 6 characters" });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(409).json({ message: "Email is already registered" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      passwordHash,
+      role: "customer",
+    });
+
+    const token = signToken(user);
+
+    // Set token in HttpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(201).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
 }
 
 // POST /api/auth/login
@@ -72,8 +88,15 @@ async function login(req, res) {
 
         const token = signToken(user);
 
+        // set token as secure cookie (httpOnly)
+        res.cookie("token", token, {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
         res.json({
-            token,
             user: { id: user._id, name: user.name, email: user.email, role: user.role },
         });
     } catch (err) {
@@ -88,4 +111,11 @@ async function me(req, res) {
     res.json({ user: req.user });
 }
 
-module.exports = { register, login, me };
+// POST /api/auth/logout
+async function logout(req, res) {
+    // Clear the token cookie
+    res.clearCookie("token", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+    res.json({ message: "Logged out" });
+}
+
+module.exports = { register, login, me, logout };
