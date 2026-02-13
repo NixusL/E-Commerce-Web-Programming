@@ -98,9 +98,12 @@ export default function HomePage() {
 
         {/* Grid */}
         <div className="new-arrivals-grid">
-          {newArrivals.map((product) => (
-            <ProductCard key={product.id || product._id} product={product} onBuy={async (p) => { try { await addToCart(p); setShowModal(true); setTimeout(() => setShowModal(false), 3000); } catch (e) {} }} />
-          ))}
+          {newArrivals.map((product) => {
+            const img = product.image ? (product.image.startsWith('http') ? product.image : `${API_BASE}${product.image}`) : product.image;
+            return (
+              <ProductCard key={product.id || product._id} product={{ ...product, image: img }} onBuy={async (p) => { try { await addToCart(p); setShowModal(true); setTimeout(() => setShowModal(false), 3000); } catch (e) {} }} />
+            );
+          })}
         </div>
 
       </section>

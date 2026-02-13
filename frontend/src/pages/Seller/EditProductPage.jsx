@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CATEGORIES } from "../../constants/categories";
 import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
+import CropModal from "../../components/CropModal";
 
 export default function EditProductPage() {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ export default function EditProductPage() {
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [brand, setBrand] = useState("");
+  const [showCrop, setShowCrop] = useState(false);
+  const [pendingImageSrc, setPendingImageSrc] = useState(null);
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -287,10 +290,24 @@ export default function EditProductPage() {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setField("image", e.target.files[0])}
+            onChange={(e) => {
+              const f = e.target.files && e.target.files[0];
+              if (!f) return;
+              const url = URL.createObjectURL(f);
+              setPendingImageSrc(url);
+              setShowCrop(true);
+            }}
             className="auth-input"
           />
         </label>
+
+        {showCrop && pendingImageSrc && (
+          <CropModal
+            src={pendingImageSrc}
+            onCancel={() => { setShowCrop(false); URL.revokeObjectURL(pendingImageSrc); setPendingImageSrc(null); }}
+            onComplete={(file) => { setShowCrop(false); URL.revokeObjectURL(pendingImageSrc); setPendingImageSrc(null); setField('image', file); }}
+          />
+        )}
 
         <label className="auth-label">
           Stock Quantity
