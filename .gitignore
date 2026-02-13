@@ -16,4 +16,4 @@ client/.env
 # Build outputs
 dist/
 build/
-client/build/
+client/build/*.zip
