@@ -58,7 +58,7 @@ async function buyNow(req, res) {
 
 async function createCheckoutSession(req, res) {
   try {
-    const { items } = req.body; // items = [{productId, qty}, ...]
+    const { items, couponId } = req.body; // items = [{productId, qty}, ...]
     const userId = req.user._id;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -100,6 +100,7 @@ async function createCheckoutSession(req, res) {
         type: "cart-checkout",
         userId: userId.toString(),
         itemsJson: JSON.stringify(items),
+        couponId: couponId || "",
       },
     });
 
@@ -127,6 +128,7 @@ async function confirmPayment(req, res) {
     const metadata = session.metadata;
     let total = 0;
     const orderItems = [];
+    let appliedCoupon = null;
 
     if (metadata.type === "buy-now") {
       // Handle buy-now (single product)
@@ -196,6 +198,25 @@ async function confirmPayment(req, res) {
 
     } else {
       return res.status(400).json({ message: "Invalid session type" });
+    }
+
+    // If coupon specified in metadata, apply discount and mark used
+    if (metadata.couponId) {
+      try {
+        const Coupon = require("../models/Coupon");
+        const coupon = await Coupon.findById(metadata.couponId);
+        const uid = userId;
+        if (coupon && coupon.isActive && coupon.claimedBy.map(String).includes(String(uid)) && !coupon.usedBy.map(String).includes(String(uid))) {
+          const discountAmount = (total * (coupon.discount / 100));
+          total = Math.max(0, Math.round((total - discountAmount) * 100) / 100);
+          // mark used
+          coupon.usedBy.push(uid);
+          await coupon.save();
+          appliedCoupon = coupon;
+        }
+      } catch (e) {
+        console.error("apply coupon error:", e);
+      }
     }
 
     // Create order
