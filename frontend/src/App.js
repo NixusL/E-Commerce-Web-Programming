@@ -13,6 +13,7 @@ import ProductsPage from "./pages/Products/ProductsPage";
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import MyOrdersPage from "./pages/Orders/MyOrdersPage";
+import MyProfilePage from "./pages/MyProfilePage";
 import MyProductsPage from "./pages/Seller/MyProductsPage";
 import AddProductPage from "./pages/Seller/AddProductPage";
 import EditProductPage from "./pages/Seller/EditProductPage";
@@ -82,11 +83,11 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          <Route path="/become-seller" element={<SellerRequestPage />} />
-          <Route path="/seller-refunds" element={<SellerRefundsPage />} />
-
+          <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-orders" element={<MyOrdersPage showToast={showToast} />} />
           <Route path="/my-products" element={<MyProductsPage />} />
+          <Route path="/become-seller" element={<SellerRequestPage />} />
+          <Route path="/seller-refunds" element={<SellerRefundsPage />} />
 
           <Route path="/products/new" element={<AddProductPage />} />
           <Route path="/products/:id/edit" element={<EditProductPage />} />

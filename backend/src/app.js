@@ -19,6 +19,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const userRoutes = require("./routes/userRoutes");
+const couponRoutes = require("./routes/couponRoutes");
 const { becomeSeller } = require("./controllers/userController");
 const auth = require("./middleware/auth");
 
@@ -49,6 +50,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/coupons", couponRoutes);
 
 // Fallback: ensure this endpoint is always handled even if router matching fails
 app.post("/api/users/become-seller", auth, becomeSeller);

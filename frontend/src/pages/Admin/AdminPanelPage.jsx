@@ -5,6 +5,7 @@ import {
   FaUserPlus,
   FaTags,
   FaUndo,
+  FaTicketAlt,
 } from "react-icons/fa";
 import { prettyRefundStatus } from "../../utils/refundStatus";
 import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
@@ -26,7 +27,7 @@ function formatDate(iso) {
 // using pushToast from services/apiClient
 
 export default function AdminPanelPage() {
-  const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories | sellerRequests | refunds
+  const [tab, setTab] = useState("products"); // products | orders | users | sellers | categories | sellerRequests | refunds | coupons
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +48,10 @@ export default function AdminPanelPage() {
   // users
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
   const [newSeller, setNewSeller] = useState({ name: "", email: "", password: "" });
+
+  // coupons
+  const [coupons, setCoupons] = useState([]);
+  const [newCoupon, setNewCoupon] = useState({ code: "", name: "", discount: 5 });
 
   // expandable orders
   const [expandedOrders, setExpandedOrders] = useState(() => new Set());
@@ -75,6 +80,7 @@ export default function AdminPanelPage() {
     if (tab === "categories") loadCategories();
     if (tab === "sellerRequests") loadSellerRequests();
     if (tab === "refunds") loadRefundRequests();
+    if (tab === "coupons") loadCoupons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -190,6 +196,29 @@ export default function AdminPanelPage() {
       const data = await res.json().catch(() => []);
       if (!res.ok) throw new Error(data?.message || "Failed to load refund requests");
       setRefundRequests(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || "Network error");
+      pushToast({ type: "error", message: `❌ ${e.message || "Network error"}`, canUndo: false });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadCoupons() {
+    const me = await getCurrentUser();
+    if (!me || me.role !== "admin") {
+      pushToast({ type: "error", message: "❌ Admin access required", canUndo: false });
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${API_BASE}/api/coupons`, {
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => []);
+      if (!res.ok) throw new Error(data?.message || "Failed to load coupons");
+      setCoupons(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Network error");
       pushToast({ type: "error", message: `❌ ${e.message || "Network error"}`, canUndo: false });
@@ -448,6 +477,66 @@ export default function AdminPanelPage() {
     }
   }
 
+  /* =============== COUPON ACTIONS =============== */
+
+  async function createCoupon(e) {
+    e.preventDefault();
+    if (!newCoupon.code.trim() || !newCoupon.name.trim()) {
+      setError("Code and name are required");
+      return;
+    }
+    if (newCoupon.discount < 5 || newCoupon.discount > 30) {
+      setError("Discount must be between 5 and 30");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${API_BASE}/api/coupons`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newCoupon),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Failed to create coupon");
+      pushToast({
+        type: "success",
+        message: `✅ Coupon ${newCoupon.code} created (${newCoupon.discount}% off)`,
+        canUndo: false,
+      });
+      setNewCoupon({ code: "", name: "", discount: 5 });
+      await loadCoupons();
+    } catch (e) {
+      pushToast({ type: "error", message: `❌ ${e.message || "Create failed"}`, canUndo: false });
+      setError(e.message || "Create failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deactivateCoupon(couponId) {
+    const ok = window.confirm("Deactivate this coupon?");
+    if (!ok) return;
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${API_BASE}/api/coupons/${couponId}/deactivate`, {
+        method: "PUT",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Failed to deactivate coupon");
+      pushToast({ type: "success", message: "🗑️ Coupon deactivated", canUndo: false });
+      await loadCoupons();
+    } catch (e) {
+      pushToast({ type: "error", message: `❌ ${e.message || "Deactivate failed"}`, canUndo: false });
+      setError(e.message || "Deactivate failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   /* =============== SELLER REQUEST ACTIONS =============== */
 
   async function approveSellerRequest(id) {
@@ -608,6 +697,13 @@ export default function AdminPanelPage() {
             type="button"
           >
             <FaUndo className="tab-icon" /> Refund Requests
+          </button>
+          <button
+            className={"admin-tab" + (tab === "coupons" ? " admin-tab--active" : "")}
+            onClick={() => setTab("coupons")}
+            type="button"
+          >
+            <FaTicketAlt className="tab-icon" /> Coupons
           </button>
         </div>
       </div>
@@ -1085,6 +1181,101 @@ export default function AdminPanelPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "coupons" && (
+        <div className="admin-card">
+          <h3 className="admin-section-title">Create New Coupon</h3>
+          <form onSubmit={createCoupon} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "1rem", marginBottom: "2rem", alignItems: "end" }}>
+            <label style={{ display: "flex", flexDirection: "column" }}>
+              Code
+              <input
+                type="text"
+                value={newCoupon.code}
+                onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                placeholder="e.g. SAVE10"
+                style={{ marginTop: "0.25rem", padding: "0.5rem", border: "1px solid #ddd", borderRadius: "4px" }}
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column" }}>
+              Name
+              <input
+                type="text"
+                value={newCoupon.name}
+                onChange={(e) => setNewCoupon({ ...newCoupon, name: e.target.value })}
+                placeholder="e.g. Summer Sale 10%"
+                style={{ marginTop: "0.25rem", padding: "0.5rem", border: "1px solid #ddd", borderRadius: "4px" }}
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column" }}>
+              Discount (%)
+              <select
+                value={newCoupon.discount}
+                onChange={(e) => setNewCoupon({ ...newCoupon, discount: parseInt(e.target.value) })}
+                style={{ marginTop: "0.25rem", padding: "0.5rem", border: "1px solid #ddd", borderRadius: "4px" }}
+              >
+                {[5, 10, 15, 20, 25, 30].map((d) => (
+                  <option key={d} value={d}>
+                    {d}%
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" disabled={loading} className="auth-primary-button">
+              {loading ? "Creating..." : "Create"}
+            </button>
+          </form>
+
+          <h3 className="admin-section-title">All Coupons</h3>
+          {loading && <div className="admin-empty">Loading...</div>}
+          {!loading && coupons.length === 0 && (
+            <div className="admin-empty">No coupons found.</div>
+          )}
+          {!loading && coupons.length > 0 && (
+            <div className="admin-table">
+              <div className="admin-row admin-row--head">
+                <div className="admin-cell">Code</div>
+                <div className="admin-cell">Name</div>
+                <div className="admin-cell">Discount</div>
+                <div className="admin-cell">Used By</div>
+                <div className="admin-cell">Status</div>
+                <div className="admin-cell">Created</div>
+                <div className="admin-cell">Actions</div>
+              </div>
+              {coupons.map((coupon) => (
+                <div className="admin-row" key={coupon._id}>
+                  <div className="admin-cell">{coupon.code}</div>
+                  <div className="admin-cell">{coupon.name}</div>
+                  <div className="admin-cell">{coupon.discount}%</div>
+                  <div className="admin-cell">{coupon.usedBy?.length || 0}</div>
+                  <div className="admin-cell">
+                    <span className={coupon.isActive ? "admin-pill" : "admin-pill--in"}>
+                      {coupon.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="admin-cell">{formatDate(coupon.createdAt)}</div>
+                  <div className="admin-cell">
+                    {coupon.isActive && (
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        disabled={loading}
+                        onClick={() => deactivateCoupon(coupon._id)}
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                    {!coupon.isActive && (
+                      <button className="btn-secondary btn-disabled" type="button" disabled>
+                        Deactivated
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

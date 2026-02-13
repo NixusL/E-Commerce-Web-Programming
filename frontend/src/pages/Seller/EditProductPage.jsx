@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CATEGORIES } from "../../constants/categories";
 import { API_BASE, getCurrentUser, pushToast } from "../../services/apiClient";
 import CropModal from "../../components/CropModal";
 
@@ -28,6 +27,15 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function load() {
+      // First fetch categories
+      try {
+        const catRes = await fetch(`${API_BASE}/api/products/categories`);
+        const catData = await catRes.json();
+        setCategories(Array.isArray(catData) ? catData : []);
+      } catch {
+        setCategories([]);
+      }
+
       const me = await getCurrentUser();
       if (!me) {
         navigate("/login");
@@ -76,9 +84,12 @@ export default function EditProductPage() {
 
         setBrand(data.brand || "");
 
-        const preset = CATEGORIES.includes(categoryName);
-        setCategoryMode(preset ? "preset" : "custom");
-        setCustomCategory(preset ? "" : categoryName || "");
+        // Check if category is preset (exists in fetched categories)
+        const isPresetCategory = categoryName && Array.isArray(categories) && 
+          categories.some(c => c.name === categoryName);
+        
+        setCategoryMode(isPresetCategory ? "preset" : "custom");
+        setCustomCategory(isPresetCategory ? "" : categoryName || "");
       } catch {
         setError("Network error");
         pushToast({ type: "error", message: "❌ Network error", canUndo: false });
@@ -88,12 +99,7 @@ export default function EditProductPage() {
     }
 
     load();
-    // fetch categories for brand lists
-    fetch(`${API_BASE}/api/products/categories`)
-      .then((r) => r.json())
-      .then((d) => setCategories(Array.isArray(d) ? d : []))
-      .catch(() => setCategories([]));
-  }, [id, navigate]);
+  }, [id, navigate, categories.length]);
 
   const isAdmin = user?.role === "admin";
   const isOwner = ownerId && user?.id && String(ownerId) === String(user.id);
@@ -229,18 +235,19 @@ export default function EditProductPage() {
                 setCategoryMode("custom");
                 setField("category", "");
                 setCustomCategory("");
-                  setBrand("");
+                setBrand("");
               } else {
                 setCategoryMode("preset");
                 setField("category", v);
                 setCustomCategory("");
-                  setBrand("");
+                setBrand("");
               }
             }}
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            <option value="">Select a category</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c.name}>
+                {c.name}
               </option>
             ))}
             <option value="__custom__">Other (type)</option>
@@ -335,7 +342,7 @@ export default function EditProductPage() {
         </div>
 
         {canDelete && (
-          <button type="button" className="btn-danger-full" onClick={onDelete}>
+          <button type="button" style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', marginTop: '0.5rem' }} onClick={onDelete}>
             Delete Product
           </button>
         )}

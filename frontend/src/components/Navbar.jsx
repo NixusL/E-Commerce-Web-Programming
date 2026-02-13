@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FiSearch, FiHeart, FiShoppingCart, FiUser } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
@@ -9,6 +9,8 @@ export default function Navbar() {
   const { cartCount } = useCart();
 
   const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -18,11 +20,28 @@ export default function Navbar() {
     return () => { mounted = false; window.removeEventListener("authchange", onAuthChange); };
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   async function logout() {
     await logoutRequest();
+    setShowProfileMenu(false);
     window.dispatchEvent(new Event("authchange"));
     navigate("/login");
   }
+
+  const handleProfileMenuClick = (path) => {
+    navigate(path);
+    setShowProfileMenu(false);
+  };
 
   return (
     <header className="navbar">
@@ -62,26 +81,134 @@ export default function Navbar() {
         </button>
 
         {user ? (
-          <button className="icon-btn" onClick={() => navigate("/my-orders")} title={user.name}><FiUser /></button>
+          <div ref={profileMenuRef} style={{ position: "relative" }}>
+            <button 
+              className="icon-btn" 
+              onClick={() => setShowProfileMenu(!showProfileMenu)} 
+              title={user.name}
+            >
+              <FiUser />
+            </button>
+            
+            {showProfileMenu && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  backgroundColor: "white",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                  zIndex: 1000,
+                  minWidth: "180px",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <button
+                  onClick={() => handleProfileMenuClick("/my-profile")}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    textAlign: "left",
+                    border: "none",
+                    backgroundColor: "transparent",
+                    cursor: "pointer",
+                    fontSize: "0.95rem",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                >
+                  👤 My Profile
+                </button>
+                
+                <button
+                  onClick={() => handleProfileMenuClick("/my-orders")}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    textAlign: "left",
+                    border: "none",
+                    backgroundColor: "transparent",
+                    cursor: "pointer",
+                    fontSize: "0.95rem",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                >
+                  📦 My Orders
+                </button>
+
+                {(user.role === "seller" || user.role === "admin") && (
+                  <button
+                    onClick={() => handleProfileMenuClick("/my-products")}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      textAlign: "left",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      cursor: "pointer",
+                      fontSize: "0.95rem",
+                      borderBottom: "1px solid #eee",
+                    }}
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = "#f5f5f5")}
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                  >
+                    📝 My Products
+                  </button>
+                )}
+
+                {user.role === "admin" && (
+                  <button
+                    onClick={() => handleProfileMenuClick("/admin")}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      textAlign: "left",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      cursor: "pointer",
+                      fontSize: "0.95rem",
+                      borderBottom: "1px solid #eee",
+                      color: "#facc15",
+                    }}
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = "#f5f5f5")}
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                  >
+                    ⚙️ Admin Panel
+                  </button>
+                )}
+
+                <button
+                  onClick={logout}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "0.75rem 1rem",
+                    textAlign: "left",
+                    border: "none",
+                    backgroundColor: "transparent",
+                    cursor: "pointer",
+                    fontSize: "0.95rem",
+                    color: "#e74c3c",
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <button className="icon-btn" onClick={() => navigate("/login")}><FiUser /></button>
-        )}
-
-        {user && (
-          <button
-            type="button"
-            onClick={logout}
-            className="icon-btn"
-            title="Logout"
-            style={{
-              fontSize: "0.85rem",
-              transition: "color 0.15s ease-in-out",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#555"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = ""; }}
-          >
-            Logout
-          </button>
         )}
       </div>
     </header>

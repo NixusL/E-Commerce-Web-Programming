@@ -27,6 +27,11 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("free");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+
+  // Coupon State
+  const [myCoupons, setMyCoupons] = useState([]);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   
 
   // Address Form Modal State
@@ -75,6 +80,26 @@ export default function CheckoutPage() {
 
     fetchAddresses();
   }, [selectedAddress]);
+
+  // Fetch user's activated coupons
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/coupons/my`, {
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setMyCoupons(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch coupons:", err);
+      }
+    };
+
+    fetchCoupons();
+  }, []);
 
   const validateCardName = (name) => {
     if (!name.trim()) return "Cardholder name is required";
@@ -456,11 +481,53 @@ export default function CheckoutPage() {
                      {shippingMethod === 'schedule' && (scheduledDate && scheduledTime ? `Scheduled for ${scheduledDate} at ${scheduledTime} - $15` : 'Schedule - $15')}
                    </span>
                 </div>
+
+                {/* Coupon Section */}
+                {myCoupons.length > 0 && (
+                  <div className="sd-row" style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #eee" }}>
+                    <label style={{ width: "100%", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      <span className="sd-label">Apply Coupon</span>
+                      <select
+                        value={selectedCoupon ? selectedCoupon._id : ""}
+                        onChange={(e) => {
+                          const couponId = e.target.value;
+                          if (couponId) {
+                            const coupon = myCoupons.find(c => c._id === couponId);
+                            setSelectedCoupon(coupon);
+                            setCouponDiscount(coupon ? coupon.discount : 0);
+                          } else {
+                            setSelectedCoupon(null);
+                            setCouponDiscount(0);
+                          }
+                        }}
+                        style={{
+                          padding: "0.5rem",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        <option value="">No coupon</option>
+                        {myCoupons.map((coupon) => (
+                          <option key={coupon._id} value={coupon._id}>
+                            {coupon.code} - {coupon.name} ({coupon.discount}% off)
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
                 
                 <div className="sd-row mt-4">
                    <span>Subtotal</span>
                    <span>${displayTotal}</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="sd-row" style={{ color: "#2e7d32" }}>
+                    <span>Coupon Discount ({couponDiscount}%)</span>
+                    <span>-${(displayTotal * couponDiscount / 100).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="sd-row">
                    <span>Estimated Tax</span>
                    <span>$50</span>
@@ -471,7 +538,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="sd-row total">
                    <span>Total</span>
-                   <span>${displayTotal + 79}</span>
+                   <span>${(displayTotal + 79 - (displayTotal * couponDiscount / 100)).toFixed(2)}</span>
                 </div>
               </div>
             </div>
